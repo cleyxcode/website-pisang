@@ -96,17 +96,30 @@
                             </div>
                             <div class="d-grid gap-2">
                                 @if($product->stock > 0)
-                                    <button class="btn btn-primary btn-sm" onclick="addToCart({{ $product->id }})">
-                                        <i class="bi bi-cart-plus"></i> Tambah ke Keranjang
-                                    </button>
+                                    @auth
+                                        <button class="btn btn-primary btn-sm" onclick="addToCart({{ $product->id }})">
+                                            <i class="bi bi-cart-plus"></i> Tambah ke Keranjang
+                                        </button>
+                                    @else
+                                        <button class="btn btn-primary btn-sm" onclick="requireLogin('{{ route('login') }}')">
+                                            <i class="bi bi-cart-plus"></i> Tambah ke Keranjang
+                                        </button>
+                                    @endauth
                                 @else
                                     <button class="btn btn-secondary btn-sm" disabled>
                                         <i class="bi bi-x-circle"></i> Stok Habis
                                     </button>
                                 @endif
-                                <a href="{{ route('products.show', $product->slug) }}" class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-eye"></i> Lihat Detail
-                                </a>
+                                
+                                @auth
+                                    <a href="{{ route('products.show', $product->slug) }}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-eye"></i> Lihat Detail
+                                    </a>
+                                @else
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="requireLogin('{{ route('login') }}')">
+                                        <i class="bi bi-eye"></i> Lihat Detail
+                                    </button>
+                                @endauth
                             </div>
                         </div>
                     </div>
@@ -157,17 +170,30 @@
                             </div>
                             <div class="d-grid gap-2">
                                 @if($product->stock > 0)
-                                    <button class="btn btn-primary btn-sm" onclick="addToCart({{ $product->id }})">
-                                        <i class="bi bi-cart-plus"></i> Tambah ke Keranjang
-                                    </button>
+                                    @auth
+                                        <button class="btn btn-primary btn-sm" onclick="addToCart({{ $product->id }})">
+                                            <i class="bi bi-cart-plus"></i> Tambah ke Keranjang
+                                        </button>
+                                    @else
+                                        <button class="btn btn-primary btn-sm" onclick="requireLogin('{{ route('login') }}')">
+                                            <i class="bi bi-cart-plus"></i> Tambah ke Keranjang
+                                        </button>
+                                    @endauth
                                 @else
                                     <button class="btn btn-secondary btn-sm" disabled>
                                         <i class="bi bi-x-circle"></i> Stok Habis
                                     </button>
                                 @endif
-                                <a href="{{ route('products.show', $product->slug) }}" class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-eye"></i> Lihat Detail
-                                </a>
+                                
+                                @auth
+                                    <a href="{{ route('products.show', $product->slug) }}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-eye"></i> Lihat Detail
+                                    </a>
+                                @else
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="requireLogin('{{ route('login') }}')">
+                                        <i class="bi bi-eye"></i> Lihat Detail
+                                    </button>
+                                @endauth
                             </div>
                         </div>
                     </div>
@@ -184,9 +210,18 @@
     <div class="container text-center">
         <h3>Siap Berbelanja?</h3>
         <p class="lead">Jelajahi koleksi lengkap makanan ringan kami dan temukan favorit baru Anda!</p>
-        <a href="{{ route('products.index') }}" class="btn btn-light btn-lg">
-            <i class="bi bi-grid"></i> Mulai Belanja Sekarang
-        </a>
+        @auth
+            <a href="{{ route('products.index') }}" class="btn btn-light btn-lg">
+                <i class="bi bi-grid"></i> Mulai Belanja Sekarang
+            </a>
+        @else
+            <a href="{{ route('register') }}" class="btn btn-light btn-lg me-2">
+                <i class="bi bi-person-plus"></i> Daftar Sekarang
+            </a>
+            <a href="{{ route('products.index') }}" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-grid"></i> Lihat Produk
+            </a>
+        @endauth
     </div>
 </section>
 @endsection

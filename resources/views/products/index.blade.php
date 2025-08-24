@@ -17,6 +17,16 @@
         </div>
     </div>
 
+    <!-- Login Info untuk Guest -->
+    @guest
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> 
+        <strong>Info:</strong> Untuk melihat detail produk dan berbelanja, silakan 
+        <a href="{{ route('login') }}" class="alert-link">login</a> atau 
+        <a href="{{ route('register') }}" class="alert-link">daftar</a> terlebih dahulu.
+    </div>
+    @endguest
+
     <!-- Filters -->
     <div class="card mb-4">
         <div class="card-body">
@@ -108,19 +118,31 @@
                             <!-- Action Buttons -->
                             <div class="d-grid gap-2">
                                 @if($product->stock > 0)
-                                    <button class="btn btn-primary btn-sm" onclick="addToCart({{ $product->id }})">
-                                        <i class="bi bi-cart-plus"></i> Tambah ke Keranjang
-                                    </button>
+                                    @auth
+                                        <button class="btn btn-primary btn-sm" onclick="addToCart({{ $product->id }})">
+                                            <i class="bi bi-cart-plus"></i> Tambah ke Keranjang
+                                        </button>
+                                    @else
+                                        <button class="btn btn-primary btn-sm" onclick="requireLogin('{{ route('login') }}')">
+                                            <i class="bi bi-cart-plus"></i> Login untuk Beli
+                                        </button>
+                                    @endauth
                                 @else
                                     <button class="btn btn-secondary btn-sm" disabled>
                                         <i class="bi bi-x-circle"></i> Stok Habis
                                     </button>
                                 @endif
                                 
-                                <a href="{{ route('products.show', $product->slug) }}" 
-                                   class="btn btn-outline-secondary btn-sm">
-                                    <i class="bi bi-eye"></i> Lihat Detail
-                                </a>
+                                @auth
+                                    <a href="{{ route('products.show', $product->slug) }}" 
+                                       class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-eye"></i> Lihat Detail
+                                    </a>
+                                @else
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="requireLogin('{{ route('login') }}')">
+                                        <i class="bi bi-eye"></i> Lihat Detail
+                                    </button>
+                                @endauth
                             </div>
                         </div>
                     </div>

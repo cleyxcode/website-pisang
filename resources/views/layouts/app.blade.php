@@ -90,16 +90,59 @@
                 </ul>
                 
                 <ul class="navbar-nav">
-                    <li class="nav-item position-relative">
-                        <a class="nav-link" href="{{ route('cart.index') }}">
-                            <i class="bi bi-cart3"></i> Keranjang
-                            <span class="cart-badge" id="cart-count" style="display: none;">0</span>
-                        </a>
-                    </li>
+                    @auth
+                        <li class="nav-item position-relative">
+                            <a class="nav-link" href="{{ route('cart.index') }}">
+                                <i class="bi bi-cart3"></i> Keranjang
+                                <span class="cart-badge" id="cart-count" style="display: none;">0</span>
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person"></i> {{ Auth::user()->name }}
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button class="dropdown-item" type="submit">
+                                            <i class="bi bi-box-arrow-right"></i> Logout
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </li>
+                    @else
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('login') }}">
+                                <i class="bi bi-box-arrow-in-right"></i> Login
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('register') }}">
+                                <i class="bi bi-person-plus"></i> Daftar
+                            </a>
+                        </li>
+                    @endauth
                 </ul>
             </div>
         </div>
     </nav>
+
+    <!-- Alerts -->
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show m-0" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show m-0" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
 
     <!-- Main Content -->
     <main>
@@ -142,47 +185,59 @@
             }
         });
 
-        // Update cart count on page load
+        // Update cart count on page load (only for authenticated users)
         $(document).ready(function() {
-            updateCartCount();
+            @auth
+                updateCartCount();
+            @endauth
         });
 
         function updateCartCount() {
-            $.get('{{ route("cart.count") }}', function(response) {
-                const count = response.count;
-                const badge = $('#cart-count');
-                
-                if (count > 0) {
-                    badge.text(count).show();
-                } else {
-                    badge.hide();
-                }
-            });
+            @auth
+                $.get('{{ route("cart.count") }}', function(response) {
+                    const count = response.count;
+                    const badge = $('#cart-count');
+                    
+                    if (count > 0) {
+                        badge.text(count).show();
+                    } else {
+                        badge.hide();
+                    }
+                });
+            @endauth
         }
 
         // Add to cart function
         function addToCart(productId, quantity = 1) {
-            $.post('{{ route("cart.add") }}', {
-                product_id: productId,
-                quantity: quantity
-            })
-            .done(function(response) {
-                if (response.success) {
-                    showAlert('success', response.message);
-                    updateCartCount();
-                } else {
-                    showAlert('danger', response.message);
-                }
-            })
-            .fail(function() {
-                showAlert('danger', 'Terjadi kesalahan. Silakan coba lagi.');
-            });
+            @guest
+                alert('Anda harus login terlebih dahulu untuk menambahkan produk ke keranjang!');
+                window.location.href = '{{ route("login") }}';
+                return;
+            @endguest
+            
+            @auth
+                $.post('{{ route("cart.add") }}', {
+                    product_id: productId,
+                    quantity: quantity
+                })
+                .done(function(response) {
+                    if (response.success) {
+                        showAlert('success', response.message);
+                        updateCartCount();
+                    } else {
+                        showAlert('danger', response.message);
+                    }
+                })
+                .fail(function() {
+                    showAlert('danger', 'Terjadi kesalahan. Silakan coba lagi.');
+                });
+            @endauth
         }
 
         // Show alert function
         function showAlert(type, message) {
             const alert = `
-                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <div class="alert alert-${type} alert-dismissible fade show m-0" role="alert">
                     ${message}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
@@ -191,13 +246,26 @@
             // Remove existing alerts
             $('.alert').remove();
             
-            // Add new alert at the top of main content
-            $('main').prepend(alert);
+            // Add new alert after navbar
+            $('nav').after(alert);
             
             // Auto hide alert after 3 seconds
             setTimeout(function() {
                 $('.alert').fadeOut();
             }, 3000);
+        }
+
+        // Handle protected action clicks
+        function requireLogin(url) {
+            @guest
+                alert('Anda harus login terlebih dahulu untuk mengakses fitur ini!');
+                window.location.href = '{{ route("login") }}';
+                return false;
+            @endguest
+            
+            @auth
+                window.location.href = url;
+            @endauth
         }
     </script>
     
