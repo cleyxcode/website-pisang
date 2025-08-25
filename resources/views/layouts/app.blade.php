@@ -90,7 +90,7 @@
                 </ul>
                 
                 <ul class="navbar-nav">
-                    @auth
+                    @auth('customer')
                         <li class="nav-item position-relative">
                             <a class="nav-link" href="{{ route('cart.index') }}">
                                 <i class="bi bi-cart3"></i> Keranjang
@@ -99,7 +99,7 @@
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-person"></i> {{ Auth::user()->name }}
+                                <i class="bi bi-person"></i> {{ Auth::guard('customer')->user()->name }}
                             </a>
                             <ul class="dropdown-menu">
                                 <li>
@@ -185,15 +185,15 @@
             }
         });
 
-        // Update cart count on page load (only for authenticated users)
+        // Update cart count on page load (only for authenticated customers)
         $(document).ready(function() {
-            @auth
+            @auth('customer')
                 updateCartCount();
             @endauth
         });
 
         function updateCartCount() {
-            @auth
+            @auth('customer')
                 $.get('{{ route("cart.count") }}', function(response) {
                     const count = response.count;
                     const badge = $('#cart-count');
@@ -209,13 +209,13 @@
 
         // Add to cart function
         function addToCart(productId, quantity = 1) {
-            @guest
+            @guest('customer')
                 alert('Anda harus login terlebih dahulu untuk menambahkan produk ke keranjang!');
                 window.location.href = '{{ route("login") }}';
                 return;
             @endguest
             
-            @auth
+            @auth('customer')
                 $.post('{{ route("cart.add") }}', {
                     product_id: productId,
                     quantity: quantity
@@ -257,13 +257,13 @@
 
         // Handle protected action clicks
         function requireLogin(url) {
-            @guest
+            @guest('customer')
                 alert('Anda harus login terlebih dahulu untuk mengakses fitur ini!');
                 window.location.href = '{{ route("login") }}';
                 return false;
             @endguest
             
-            @auth
+            @auth('customer')
                 window.location.href = url;
             @endauth
         }

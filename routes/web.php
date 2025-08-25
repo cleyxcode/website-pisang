@@ -11,16 +11,22 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/featured-products', [ProductController::class, 'featured'])->name('products.featured');
 
-// Auth routes
-Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
-Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+// Guest routes (hanya bisa diakses jika belum login)
+Route::middleware(['web', 'guest:customer'])->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register']);
+});
 
-// Protected routes (harus login)
-Route::middleware('auth')->group(function () {
-    // Product detail dan cart hanya bisa diakses setelah login
+// Logout route (untuk authenticated users)
+Route::middleware(['web', 'auth:customer'])->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+});
+
+// Protected routes (harus login sebagai customer)
+Route::middleware(['web', 'auth:customer'])->group(function () {
+    // Product detail hanya bisa diakses setelah login
     Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
     
     // Cart routes
