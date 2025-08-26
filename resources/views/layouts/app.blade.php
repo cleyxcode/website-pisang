@@ -91,6 +91,7 @@
     <a class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}" href="{{ route('orders.index') }}">
         <i class="bi bi-clock-history"></i> Pesanan Saya
     </a>
+    
 </li>
                 </ul>
                 
@@ -165,7 +166,7 @@
                 <div class="col-md-6">
                     <h6>Kontak</h6>
                     <p>
-                        <i class="bi bi-whatsapp"></i> WhatsApp: +62 812-3456-7890<br>
+                        <i class="bi bi-whatsapp"></i> WhatsApp: +62 821-9857-9298<br>
                         <i class="bi bi-envelope"></i> Email: info@tokomakanan.com
                     </p>
                 </div>
