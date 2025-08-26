@@ -48,6 +48,7 @@ return new class extends Migration
             $table->text('notes')->nullable(); // Catatan customer
             $table->text('admin_notes')->nullable(); // Catatan admin
             
+            
             $table->timestamps();
         });
     }

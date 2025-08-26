@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Carbon\Carbon;
 
 class Order extends Model
@@ -26,6 +27,8 @@ class Order extends Model
         'voucher_code',
         'voucher_discount',
         'payment_method',
+        'payment_method_id',
+        'has_payment_proof',
         'status',
         'midtrans_order_id',
         'midtrans_transaction_id',
@@ -43,6 +46,7 @@ class Order extends Model
         'shipping_cost' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'voucher_discount' => 'decimal:2',
+        'has_payment_proof' => 'boolean',
         'paid_at' => 'datetime',
         'shipped_at' => 'datetime',
         'delivered_at' => 'datetime',
@@ -83,6 +87,16 @@ class Order extends Model
         return $this->belongsTo(Voucher::class);
     }
 
+    public function paymentMethod(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class);
+    }
+
+    public function paymentProof(): HasOne
+    {
+        return $this->hasOne(PaymentProof::class);
+    }
+
     // Scopes
     public function scopePaid($query)
     {
@@ -92,6 +106,18 @@ class Order extends Model
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
+    }
+
+    public function scopeWaitingPaymentProof($query)
+    {
+        return $query->where('status', 'pending')
+                    ->where('payment_method', 'manual')
+                    ->where('has_payment_proof', false);
+    }
+
+    public function scopeHasPaymentProof($query)
+    {
+        return $query->where('has_payment_proof', true);
     }
 
     public function scopeThisMonth($query)
@@ -116,6 +142,10 @@ class Order extends Model
     // Attributes
     public function getStatusLabelAttribute(): string
     {
+        if ($this->status === 'pending' && $this->payment_method === 'manual') {
+            return $this->has_payment_proof ? 'Menunggu Verifikasi' : 'Menunggu Pembayaran';
+        }
+
         return match($this->status) {
             'pending' => 'Menunggu Pembayaran',
             'paid' => 'Sudah Dibayar',
@@ -130,6 +160,10 @@ class Order extends Model
 
     public function getStatusColorAttribute(): string
     {
+        if ($this->status === 'pending' && $this->payment_method === 'manual' && $this->has_payment_proof) {
+            return 'info'; // Biru untuk menunggu verifikasi
+        }
+
         return match($this->status) {
             'pending' => 'warning',
             'paid' => 'info',
@@ -144,6 +178,10 @@ class Order extends Model
 
     public function getPaymentMethodLabelAttribute(): string
     {
+        if ($this->payment_method === 'manual' && $this->paymentMethod) {
+            return $this->paymentMethod->name;
+        }
+
         return match($this->payment_method) {
             'midtrans' => 'Otomatis (Midtrans)',
             'manual' => 'Manual (Transfer)',
@@ -168,9 +206,36 @@ class Order extends Model
         return in_array($this->status, ['paid', 'processing']);
     }
 
+    // Check if order needs payment proof
+    public function needsPaymentProof(): bool
+    {
+        return $this->payment_method === 'manual' && 
+               $this->status === 'pending' && 
+               !$this->has_payment_proof;
+    }
+
+    // Check if payment proof is pending verification
+    public function isPaymentProofPending(): bool
+    {
+        return $this->has_payment_proof && 
+               $this->status === 'pending' && 
+               $this->paymentProof && 
+               $this->paymentProof->status === 'pending';
+    }
+
     // Calculate total items
     public function getTotalItemsAttribute(): int
     {
         return $this->items->sum('quantity');
+    }
+
+    // Get payment instructions
+    public function getPaymentInstructionsAttribute(): ?string
+    {
+        if ($this->payment_method === 'manual' && $this->paymentMethod) {
+            return $this->paymentMethod->instructions;
+        }
+        
+        return null;
     }
 }

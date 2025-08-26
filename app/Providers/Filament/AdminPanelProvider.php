@@ -51,6 +51,7 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+            ->authGuard('web') // Tambahkan baris ini untuk menggunakan guard 'web'
             ->authMiddleware([
                 Authenticate::class,
             ]);
