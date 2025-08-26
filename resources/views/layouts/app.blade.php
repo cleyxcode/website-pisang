@@ -87,6 +87,11 @@
                             <i class="bi bi-star"></i> Produk Unggulan
                         </a>
                     </li>
+                    <li class="nav-item">
+    <a class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}" href="{{ route('orders.index') }}">
+        <i class="bi bi-clock-history"></i> Pesanan Saya
+    </a>
+</li>
                 </ul>
                 
                 <ul class="navbar-nav">

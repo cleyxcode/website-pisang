@@ -6,6 +6,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\OrderHistoryController;
 
 // Public routes (dapat diakses tanpa login)
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -29,7 +30,7 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
 Route::middleware(['web', 'auth:customer'])->group(function () {
     // Product detail hanya bisa diakses setelah login
     Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
-    
+        
     // Cart routes
     Route::prefix('cart')->name('cart.')->group(function () {
         Route::get('/', [CartController::class, 'index'])->name('index');
@@ -39,7 +40,7 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
         Route::delete('/clear', [CartController::class, 'clear'])->name('clear');
         Route::get('/count', [CartController::class, 'getCartCount'])->name('count');
     });
-    
+        
     // Checkout routes
     Route::prefix('checkout')->name('checkout.')->group(function () {
         Route::get('/', [CheckoutController::class, 'index'])->name('index');
@@ -49,5 +50,12 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
         Route::get('/{order}/payment-proof', [CheckoutController::class, 'paymentProof'])->name('payment-proof');
         Route::post('/{order}/payment-proof', [CheckoutController::class, 'storePaymentProof'])->name('store-payment-proof');
         Route::get('/{order}/success', [CheckoutController::class, 'success'])->name('success');
+    });
+    
+    // Order History routes
+    Route::prefix('orders')->name('orders.')->group(function () {
+        Route::get('/', [OrderHistoryController::class, 'index'])->name('index');
+        Route::get('/{order}', [OrderHistoryController::class, 'show'])->name('show');
+        Route::put('/{order}/cancel', [OrderHistoryController::class, 'cancel'])->name('cancel');
     });
 });
