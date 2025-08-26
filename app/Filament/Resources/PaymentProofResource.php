@@ -21,6 +21,7 @@ class PaymentProofResource extends Resource
     protected static ?string $model = PaymentProof::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
+    protected static ?string $navigationLabel = 'bukti pembayaran';
 
     
 
