@@ -47,7 +47,8 @@ return new class extends Migration
             // Notes
             $table->text('notes')->nullable(); // Catatan customer
             $table->text('admin_notes')->nullable(); // Catatan admin
-            
+            $table->foreignId('payment_method_id')->nullable()->constrained()->onDelete('set null')->after('payment_method');
+            $table->boolean('has_payment_proof')->default(false)->after('payment_method_id');
             
             $table->timestamps();
         });

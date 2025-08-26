@@ -5,6 +5,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CheckoutController;
 
 // Public routes (dapat diakses tanpa login)
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -39,7 +40,14 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
         Route::get('/count', [CartController::class, 'getCartCount'])->name('count');
     });
     
-    Route::get('/checkout', function() {
-        return redirect()->route('cart.index')->with('info', 'Fitur checkout sedang dalam pengembangan');
-    })->name('checkout.index');
+    // Checkout routes
+    Route::prefix('checkout')->name('checkout.')->group(function () {
+        Route::get('/', [CheckoutController::class, 'index'])->name('index');
+        Route::post('/', [CheckoutController::class, 'store'])->name('store');
+        Route::get('/{order}/payment', [CheckoutController::class, 'payment'])->name('payment');
+        Route::post('/{order}/payment-method', [CheckoutController::class, 'paymentMethod'])->name('payment-method');
+        Route::get('/{order}/payment-proof', [CheckoutController::class, 'paymentProof'])->name('payment-proof');
+        Route::post('/{order}/payment-proof', [CheckoutController::class, 'storePaymentProof'])->name('store-payment-proof');
+        Route::get('/{order}/success', [CheckoutController::class, 'success'])->name('success');
+    });
 });

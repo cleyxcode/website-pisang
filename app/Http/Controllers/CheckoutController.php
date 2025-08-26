@@ -1,0 +1,285 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\PaymentMethod;
+use App\Models\PaymentProof;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+
+class CheckoutController extends Controller
+{
+    public function index()
+    {
+        $cart = session()->get('cart', []);
+        
+        if (empty($cart)) {
+            return redirect()->route('cart.index')->with('error', 'Keranjang belanja kosong');
+        }
+        
+        // Validate cart items and stock
+        foreach ($cart as $id => $item) {
+            $product = Product::find($id);
+            if (!$product || !$product->is_active || $product->stock < $item['quantity']) {
+                unset($cart[$id]);
+            }
+        }
+        
+        if (empty($cart)) {
+            session()->put('cart', []);
+            return redirect()->route('cart.index')->with('error', 'Beberapa produk tidak tersedia atau stok habis');
+        }
+        
+        $subtotal = $this->calculateSubtotal($cart);
+        $shippingCost = 15000; // Fixed shipping cost
+        $total = $subtotal + $shippingCost;
+        
+        // Get customer info
+        $customer = Auth::guard('customer')->user();
+        
+        return view('checkout.index', compact('cart', 'subtotal', 'shippingCost', 'total', 'customer'));
+    }
+    
+    public function store(Request $request)
+    {
+        $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_email' => 'required|email|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'customer_address' => 'required|string|max:1000',
+            'notes' => 'nullable|string|max:500',
+        ]);
+        
+        $cart = session()->get('cart', []);
+        
+        if (empty($cart)) {
+            return redirect()->route('cart.index')->with('error', 'Keranjang belanja kosong');
+        }
+        
+        DB::beginTransaction();
+        
+        try {
+            // Validate stock again
+            foreach ($cart as $id => $item) {
+                $product = Product::lockForUpdate()->find($id);
+                if (!$product || $product->stock < $item['quantity']) {
+                    throw new \Exception("Stok produk {$item['name']} tidak mencukupi");
+                }
+            }
+            
+            $subtotal = $this->calculateSubtotal($cart);
+            $shippingCost = 15000;
+            $total = $subtotal + $shippingCost;
+            
+            // Create order
+            $order = Order::create([
+                'customer_name' => $request->customer_name,
+                'customer_email' => $request->customer_email,
+                'customer_phone' => $request->customer_phone,
+                'customer_address' => $request->customer_address,
+                'subtotal' => $subtotal,
+                'shipping_cost' => $shippingCost,
+                'total_amount' => $total,
+                'payment_method' => 'manual',
+                'status' => 'pending',
+                'notes' => $request->notes,
+                'discount_amount' => 0,
+                'has_payment_proof' => false,
+            ]);
+            
+            // Create order items and reduce stock
+            foreach ($cart as $id => $item) {
+                $product = Product::find($id);
+                
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'product_sku' => $product->sku ?? '',
+                    'product_price' => $product->price,
+                    'product_image' => $product->images ? $product->images[0] : null,
+                    'quantity' => $item['quantity'],
+                    'total_price' => $product->price * $item['quantity'],
+                ]);
+                
+                // Reduce stock
+                $product->decrement('stock', $item['quantity']);
+            }
+            
+            DB::commit();
+            
+            // Clear cart
+            session()->forget('cart');
+            
+            return redirect()->route('checkout.payment', $order->id)
+                           ->with('success', 'Pesanan berhasil dibuat! Silakan pilih metode pembayaran.');
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+    
+    public function payment($orderId)
+    {
+        $order = Order::with('items.product')->findOrFail($orderId);
+        
+        // Check if user owns this order (using session or email check)
+        $customer = Auth::guard('customer')->user();
+        if ($order->customer_email !== $customer->email) {
+            abort(403, 'Unauthorized');
+        }
+        
+        if ($order->status !== 'pending') {
+            return redirect()->route('home')->with('info', 'Pesanan ini sudah diproses');
+        }
+        
+        $paymentMethods = PaymentMethod::active()->get();
+        
+        return view('checkout.payment', compact('order', 'paymentMethods'));
+    }
+    
+    public function paymentMethod(Request $request, $orderId)
+    {
+        $request->validate([
+            'payment_method_id' => 'required|exists:payment_methods,id'
+        ]);
+        
+        $order = Order::findOrFail($orderId);
+        
+        // Check if user owns this order
+        $customer = Auth::guard('customer')->user();
+        if ($order->customer_email !== $customer->email) {
+            abort(403, 'Unauthorized');
+        }
+        
+        if ($order->status !== 'pending') {
+            return redirect()->route('home')->with('error', 'Pesanan sudah diproses');
+        }
+        
+        $paymentMethod = PaymentMethod::findOrFail($request->payment_method_id);
+        
+        $order->update([
+            'payment_method_id' => $paymentMethod->id
+        ]);
+        
+        return redirect()->route('checkout.payment-proof', $order->id);
+    }
+    
+    public function paymentProof($orderId)
+    {
+        $order = Order::with('paymentMethod')->findOrFail($orderId);
+        
+        // Check if user owns this order
+        $customer = Auth::guard('customer')->user();
+        if ($order->customer_email !== $customer->email) {
+            abort(403, 'Unauthorized');
+        }
+        
+        if (!$order->payment_method_id) {
+            return redirect()->route('checkout.payment', $order->id)
+                           ->with('error', 'Silakan pilih metode pembayaran terlebih dahulu');
+        }
+        
+        if ($order->has_payment_proof) {
+            return redirect()->route('checkout.success', $order->id)
+                           ->with('info', 'Bukti pembayaran sudah pernah diupload');
+        }
+        
+        return view('checkout.payment-proof', compact('order'));
+    }
+    
+    public function storePaymentProof(Request $request, $orderId)
+    {
+        $request->validate([
+            'transfer_amount' => 'required|numeric|min:0',
+            'transfer_date' => 'required|date|before_or_equal:now',
+            'sender_name' => 'required|string|max:255',
+            'sender_account' => 'nullable|string|max:100',
+            'proof_image' => 'required|image|max:2048|mimes:jpeg,jpg,png',
+            'notes' => 'nullable|string|max:500',
+        ], [
+            'proof_image.required' => 'Bukti transfer wajib diupload',
+            'proof_image.image' => 'File harus berupa gambar',
+            'proof_image.max' => 'Ukuran file maksimal 2MB',
+            'transfer_date.before_or_equal' => 'Tanggal transfer tidak boleh lebih dari hari ini',
+        ]);
+        
+        $order = Order::findOrFail($orderId);
+        
+        // Check if user owns this order
+        $customer = Auth::guard('customer')->user();
+        if ($order->customer_email !== $customer->email) {
+            abort(403, 'Unauthorized');
+        }
+        
+        if ($order->has_payment_proof) {
+            return back()->with('error', 'Bukti pembayaran sudah pernah diupload');
+        }
+        
+        if (!$order->payment_method_id) {
+            return back()->with('error', 'Metode pembayaran belum dipilih');
+        }
+        
+        DB::beginTransaction();
+        
+        try {
+            // Store proof image
+            $proofPath = $request->file('proof_image')->store('payment-proofs', 'public');
+            
+            // Create payment proof
+            PaymentProof::create([
+                'order_id' => $order->id,
+                'payment_method_id' => $order->payment_method_id,
+                'transfer_amount' => $request->transfer_amount,
+                'transfer_date' => $request->transfer_date,
+                'sender_name' => $request->sender_name,
+                'sender_account' => $request->sender_account,
+                'proof_image' => $proofPath,
+                'notes' => $request->notes,
+                'status' => 'pending',
+            ]);
+            
+            // Update order
+            $order->update([
+                'has_payment_proof' => true
+            ]);
+            
+            DB::commit();
+            
+            return redirect()->route('checkout.success', $order->id)
+                           ->with('success', 'Bukti pembayaran berhasil diupload! Pesanan Anda sedang dalam proses verifikasi.');
+            
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+    
+    public function success($orderId)
+    {
+        $order = Order::with(['items', 'paymentMethod', 'paymentProof'])
+                     ->findOrFail($orderId);
+        
+        // Check if user owns this order
+        $customer = Auth::guard('customer')->user();
+        if ($order->customer_email !== $customer->email) {
+            abort(403, 'Unauthorized');
+        }
+        
+        return view('checkout.success', compact('order'));
+    }
+    
+    private function calculateSubtotal($cart)
+    {
+        $subtotal = 0;
+        foreach ($cart as $item) {
+            $subtotal += $item['price'] * $item['quantity'];
+        }
+        return $subtotal;
+    }
+}
