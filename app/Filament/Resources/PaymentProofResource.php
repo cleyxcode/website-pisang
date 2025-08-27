@@ -21,7 +21,22 @@ class PaymentProofResource extends Resource
     protected static ?string $model = PaymentProof::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
-    protected static ?string $navigationLabel = 'bukti pembayaran';
+    protected static ?string $navigationLabel = 'Bukti Pembayaran';
+    
+    // Mengatur judul halaman
+    protected static ?string $modelLabel = 'Bukti Pembayaran';
+    protected static ?string $pluralModelLabel = 'Bukti Pembayaran';
+    
+    // Mengatur judul di halaman
+    public static function getModelLabel(): string
+    {
+        return 'Bukti Pembayaran';
+    }
+    
+    public static function getPluralModelLabel(): string
+    {
+        return 'Bukti Pembayaran';
+    }
 
     
 
@@ -30,7 +45,7 @@ class PaymentProofResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('order_id')
-                    ->label('Order')
+                    ->label('Pesanan')
                     ->options(function () {
                         return Order::query()
                             ->select('id', 'order_number', 'customer_name')
@@ -44,7 +59,7 @@ class PaymentProofResource extends Resource
                     ->required(),
                 
                 Forms\Components\Select::make('payment_method_id')
-                    ->label('Payment Method')
+                    ->label('Metode Pembayaran')
                     ->options(function () {
                         return PaymentMethod::where('is_active', true)
                             ->pluck('name', 'id');
@@ -54,47 +69,48 @@ class PaymentProofResource extends Resource
                     ->required(),
                 
                 Forms\Components\TextInput::make('transfer_amount')
-                    ->label('Transfer Amount')
+                    ->label('Jumlah Transfer')
                     ->numeric()
                     ->prefix('Rp')
                     ->required(),
                 
                 Forms\Components\DateTimePicker::make('transfer_date')
-                    ->label('Transfer Date')
+                    ->label('Tanggal Transfer')
                     ->required(),
                 
                 Forms\Components\TextInput::make('sender_name')
-                    ->label('Sender Name')
+                    ->label('Nama Pengirim')
                     ->required(),
                 
                 Forms\Components\TextInput::make('sender_account')
-                    ->label('Sender Account'),
+                    ->label('Rekening Pengirim'),
                 
                 Forms\Components\FileUpload::make('proof_image')
-                    ->label('Proof Image')
+                    ->label('Gambar Bukti Pembayaran')
                     ->image()
                     ->directory('payment-proofs')
                     ->required(),
                 
                 Forms\Components\Textarea::make('notes')
-                    ->label('Customer Notes')
+                    ->label('Catatan Pelanggan')
                     ->rows(3),
                 
                 Forms\Components\Select::make('status')
+                    ->label('Status')
                     ->options([
-                        'pending' => 'Pending',
-                        'verified' => 'Verified',
-                        'rejected' => 'Rejected',
+                        'pending' => 'Menunggu',
+                        'verified' => 'Terverifikasi',
+                        'rejected' => 'Ditolak',
                     ])
                     ->default('pending')
                     ->required(),
                 
                 Forms\Components\DateTimePicker::make('verified_at')
-                    ->label('Verified At')
+                    ->label('Diverifikasi Pada')
                     ->visible(fn ($get) => $get('status') === 'verified'),
                 
                 Forms\Components\Textarea::make('admin_notes')
-                    ->label('Admin Notes')
+                    ->label('Catatan Admin')
                     ->rows(3),
             ]);
     }
@@ -102,62 +118,72 @@ class PaymentProofResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->heading('Daftar Bukti Pembayaran')
+            ->description('Kelola dan verifikasi bukti pembayaran dari pelanggan')
             ->columns([
                 Tables\Columns\TextColumn::make('order.order_number')
-                    ->label('Order Number')
+                    ->label('Nomor Pesanan')
                     ->searchable()
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('order.customer_name')
-                    ->label('Customer')
+                    ->label('Pelanggan')
                     ->searchable()
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('paymentMethod.name')
-                    ->label('Payment Method')
+                    ->label('Metode Pembayaran')
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('transfer_amount')
-                    ->label('Amount')
+                    ->label('Jumlah')
                     ->money('IDR')
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('sender_name')
-                    ->label('Sender')
+                    ->label('Pengirim')
                     ->searchable(),
                 
                 Tables\Columns\ImageColumn::make('proof_image')
-                    ->label('Proof')
+                    ->label('Bukti')
                     ->size(50),
                 
                 Tables\Columns\BadgeColumn::make('status')
+                    ->label('Status')
                     ->colors([
                         'warning' => 'pending',
                         'success' => 'verified',
                         'danger' => 'rejected',
-                    ]),
+                    ])
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'pending' => 'Menunggu',
+                        'verified' => 'Terverifikasi',
+                        'rejected' => 'Ditolak',
+                        default => $state,
+                    }),
                 
                 Tables\Columns\TextColumn::make('transfer_date')
-                    ->label('Transfer Date')
+                    ->label('Tanggal Transfer')
                     ->dateTime()
                     ->sortable(),
                 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Submitted')
+                    ->label('Dikirim')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
+                    ->label('Status')
                     ->options([
-                        'pending' => 'Pending',
-                        'verified' => 'Verified',
-                        'rejected' => 'Rejected',
+                        'pending' => 'Menunggu',
+                        'verified' => 'Terverifikasi',
+                        'rejected' => 'Ditolak',
                     ]),
                 
                 Tables\Filters\SelectFilter::make('payment_method_id')
-                    ->label('Payment Method')
+                    ->label('Metode Pembayaran')
                     ->options(function () {
                         return PaymentMethod::where('is_active', true)
                             ->pluck('name', 'id');
@@ -166,11 +192,12 @@ class PaymentProofResource extends Resource
                     ->preload(),
                 
                 Tables\Filters\Filter::make('transfer_date')
+                    ->label('Tanggal Transfer')
                     ->form([
                         Forms\Components\DatePicker::make('from')
-                            ->label('From Date'),
+                            ->label('Dari Tanggal'),
                         Forms\Components\DatePicker::make('until')
-                            ->label('Until Date'),
+                            ->label('Sampai Tanggal'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -181,15 +208,21 @@ class PaymentProofResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat'),
+                Tables\Actions\EditAction::make()
+                    ->label('Edit'),
                 
                 // Action untuk verifikasi
                 Tables\Actions\Action::make('verify')
-                    ->label('Verify')
+                    ->label('Verifikasi')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
+                    ->modalHeading('Verifikasi Bukti Pembayaran')
+                    ->modalDescription('Apakah Anda yakin ingin memverifikasi bukti pembayaran ini?')
+                    ->modalSubmitActionLabel('Ya, Verifikasi')
+                    ->modalCancelActionLabel('Batal')
                     ->visible(fn (PaymentProof $record) => $record->status === 'pending')
                     ->action(function (PaymentProof $record) {
                         // Gunakan guard 'web' untuk admin authentication
@@ -212,14 +245,18 @@ class PaymentProofResource extends Resource
                 
                 // Action untuk menolak
                 Tables\Actions\Action::make('reject')
-                    ->label('Reject')
+                    ->label('Tolak')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
+                    ->modalHeading('Tolak Bukti Pembayaran')
+                    ->modalDescription('Berikan alasan penolakan bukti pembayaran ini.')
+                    ->modalSubmitActionLabel('Ya, Tolak')
+                    ->modalCancelActionLabel('Batal')
                     ->visible(fn (PaymentProof $record) => $record->status === 'pending')
                     ->form([
                         Forms\Components\Textarea::make('admin_notes')
-                            ->label('Rejection Reason')
+                            ->label('Alasan Penolakan')
                             ->required(),
                     ])
                     ->action(function (PaymentProof $record, array $data) {
@@ -238,40 +275,45 @@ class PaymentProofResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->label('Hapus Terpilih'),
+                ])
+                    ->label('Aksi Massal'),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort('created_at', 'desc')
+            ->emptyStateHeading('Belum Ada Bukti Pembayaran')
+            ->emptyStateDescription('Bukti pembayaran akan muncul di sini setelah pelanggan mengunggahnya.')
+            ->striped();
     }
 
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist
             ->schema([
-                Infolists\Components\Section::make('Payment Information')
+                Infolists\Components\Section::make('Informasi Pembayaran')
                     ->schema([
                         Infolists\Components\TextEntry::make('order.order_number')
-                            ->label('Order Number'),
+                            ->label('Nomor Pesanan'),
                         Infolists\Components\TextEntry::make('order.customer_name')
-                            ->label('Customer'),
+                            ->label('Pelanggan'),
                         Infolists\Components\TextEntry::make('paymentMethod.name')
-                            ->label('Payment Method'),
+                            ->label('Metode Pembayaran'),
                         Infolists\Components\TextEntry::make('transfer_amount')
-                            ->label('Transfer Amount')
+                            ->label('Jumlah Transfer')
                             ->money('IDR'),
                         Infolists\Components\TextEntry::make('transfer_date')
-                            ->label('Transfer Date')
+                            ->label('Tanggal Transfer')
                             ->dateTime(),
                         Infolists\Components\TextEntry::make('sender_name')
-                            ->label('Sender Name'),
+                            ->label('Nama Pengirim'),
                         Infolists\Components\TextEntry::make('sender_account')
-                            ->label('Sender Account'),
+                            ->label('Rekening Pengirim'),
                     ]),
                 
-                Infolists\Components\Section::make('Proof & Status')
+                Infolists\Components\Section::make('Bukti & Status')
                     ->schema([
                         Infolists\Components\ImageEntry::make('proof_image')
-                            ->label('Payment Proof'),
+                            ->label('Bukti Pembayaran'),
                         Infolists\Components\TextEntry::make('status')
                             ->label('Status')
                             ->badge()
@@ -280,14 +322,20 @@ class PaymentProofResource extends Resource
                                 'verified' => 'success',
                                 'rejected' => 'danger',
                                 default => 'gray',
+                            })
+                            ->formatStateUsing(fn (string $state): string => match ($state) {
+                                'pending' => 'Menunggu',
+                                'verified' => 'Terverifikasi',
+                                'rejected' => 'Ditolak',
+                                default => $state,
                             }),
                         Infolists\Components\TextEntry::make('notes')
-                            ->label('Customer Notes'),
+                            ->label('Catatan Pelanggan'),
                         Infolists\Components\TextEntry::make('admin_notes')
-                            ->label('Admin Notes')
+                            ->label('Catatan Admin')
                             ->visible(fn ($record) => !empty($record->admin_notes)),
                         Infolists\Components\TextEntry::make('verified_at')
-                            ->label('Verified At')
+                            ->label('Diverifikasi Pada')
                             ->dateTime()
                             ->visible(fn ($record) => $record->verified_at),
                     ]),
