@@ -3,366 +3,838 @@
 @section('title', 'Riwayat Pesanan - Toko Makanan')
 
 @section('content')
-<div class="container py-4">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h2><i class="bi bi-clock-history"></i> Riwayat Pesanan</h2>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ route('home') }}">Beranda</a></li>
-                    <li class="breadcrumb-item active">Riwayat Pesanan</li>
-                </ol>
-            </nav>
+<div class="orders-page">
+    <!-- Header Section -->
+    <section class="page-header">
+        <div class="container">
+            <div class="header-content">
+                <div class="header-info">
+                    <h1 class="page-title">
+                        <i class="bi bi-clock-history"></i>
+                        Riwayat Pesanan
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{{ route('home') }}">Beranda</a></li>
+                            <li class="breadcrumb-item active">Riwayat Pesanan</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Status Tabs -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <ul class="nav nav-pills" id="orderTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link {{ !request('status') ? 'active' : '' }}" 
-                       href="{{ route('orders.index') }}">
-                        Semua 
-                        <span class="badge bg-secondary ms-1">{{ $statusCounts['all'] }}</span>
+    <div class="container py-4">
+        <!-- Status Filter Pills -->
+        <div class="status-filter-card mb-4">
+            <div class="filter-pills-container">
+                <div class="filter-pills">
+                    <a href="{{ route('orders.index') }}" 
+                       class="filter-pill {{ !request('status') ? 'active' : '' }}">
+                        <span class="pill-text">Semua</span>
+                        <span class="pill-badge">{{ $statusCounts['all'] }}</span>
                     </a>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link {{ request('status') == 'pending' ? 'active' : '' }}" 
-                       href="{{ route('orders.index', ['status' => 'pending']) }}">
-                        Menunggu Pembayaran 
-                        <span class="badge bg-warning ms-1">{{ $statusCounts['pending'] }}</span>
+                    <a href="{{ route('orders.index', ['status' => 'pending']) }}" 
+                       class="filter-pill {{ request('status') == 'pending' ? 'active' : '' }}">
+                        <span class="pill-text">Menunggu Bayar</span>
+                        <span class="pill-badge warning">{{ $statusCounts['pending'] }}</span>
                     </a>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link {{ request('status') == 'paid' ? 'active' : '' }}" 
-                       href="{{ route('orders.index', ['status' => 'paid']) }}">
-                        Sudah Dibayar 
-                        <span class="badge bg-info ms-1">{{ $statusCounts['paid'] }}</span>
+                    <a href="{{ route('orders.index', ['status' => 'paid']) }}" 
+                       class="filter-pill {{ request('status') == 'paid' ? 'active' : '' }}">
+                        <span class="pill-text">Sudah Dibayar</span>
+                        <span class="pill-badge info">{{ $statusCounts['paid'] }}</span>
                     </a>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link {{ request('status') == 'processing' ? 'active' : '' }}" 
-                       href="{{ route('orders.index', ['status' => 'processing']) }}">
-                        Sedang Diproses 
-                        <span class="badge bg-primary ms-1">{{ $statusCounts['processing'] }}</span>
+                    <a href="{{ route('orders.index', ['status' => 'processing']) }}" 
+                       class="filter-pill {{ request('status') == 'processing' ? 'active' : '' }}">
+                        <span class="pill-text">Diproses</span>
+                        <span class="pill-badge primary">{{ $statusCounts['processing'] }}</span>
                     </a>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link {{ request('status') == 'shipped' ? 'active' : '' }}" 
-                       href="{{ route('orders.index', ['status' => 'shipped']) }}">
-                        Sedang Dikirim 
-                        <span class="badge bg-secondary ms-1">{{ $statusCounts['shipped'] }}</span>
+                    <a href="{{ route('orders.index', ['status' => 'shipped']) }}" 
+                       class="filter-pill {{ request('status') == 'shipped' ? 'active' : '' }}">
+                        <span class="pill-text">Dikirim</span>
+                        <span class="pill-badge secondary">{{ $statusCounts['shipped'] }}</span>
                     </a>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link {{ request('status') == 'delivered' ? 'active' : '' }}" 
-                       href="{{ route('orders.index', ['status' => 'delivered']) }}">
-                        Selesai 
-                        <span class="badge bg-success ms-1">{{ $statusCounts['delivered'] }}</span>
+                    <a href="{{ route('orders.index', ['status' => 'delivered']) }}" 
+                       class="filter-pill {{ request('status') == 'delivered' ? 'active' : '' }}">
+                        <span class="pill-text">Selesai</span>
+                        <span class="pill-badge success">{{ $statusCounts['delivered'] }}</span>
                     </a>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link {{ request('status') == 'cancelled' ? 'active' : '' }}" 
-                       href="{{ route('orders.index', ['status' => 'cancelled']) }}">
-                        Dibatalkan 
-                        <span class="badge bg-danger ms-1">{{ $statusCounts['cancelled'] }}</span>
+                    <a href="{{ route('orders.index', ['status' => 'cancelled']) }}" 
+                       class="filter-pill {{ request('status') == 'cancelled' ? 'active' : '' }}">
+                        <span class="pill-text">Dibatalkan</span>
+                        <span class="pill-badge danger">{{ $statusCounts['cancelled'] }}</span>
                     </a>
-                </li>
-            </ul>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <!-- Orders List -->
-    @if($orders->count() > 0)
-        <div class="row">
-            @foreach($orders as $order)
-                <div class="col-12 mb-4">
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0">
-                                    <i class="bi bi-receipt"></i> 
-                                    Pesanan #{{ $order->order_number }}
-                                </h6>
-                                <small class="text-muted">
+        <!-- Orders List -->
+        @if($orders->count() > 0)
+            <div class="orders-grid">
+                @foreach($orders as $order)
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div class="order-info">
+                                <div class="order-number">
+                                    <i class="bi bi-receipt"></i>
+                                    #{{ $order->order_number }}
+                                </div>
+                                <div class="order-date">
                                     {{ $order->created_at->format('d M Y H:i') }}
-                                </small>
+                                </div>
                             </div>
-                            <div class="d-flex align-items-center">
-                                <span class="badge bg-{{ $order->status_color }} me-2">
+                            <div class="order-status">
+                                <span class="status-badge {{ $order->status_color }}">
+                                    <i class="bi bi-circle-fill"></i>
                                     {{ $order->status_label }}
                                 </span>
                                 @if($order->has_payment_proof)
-                                    <i class="bi bi-check-circle-fill text-success" title="Sudah Upload Bukti Pembayaran"></i>
+                                    <div class="payment-indicator" title="Sudah Upload Bukti Pembayaran">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                    </div>
                                 @endif
                             </div>
                         </div>
                         
-                        <div class="card-body">
-                            <!-- Order Items Preview -->
-                            <div class="row mb-3">
-                                <div class="col-md-8">
-                                    <div class="d-flex flex-wrap">
-                                        @foreach($order->items->take(3) as $item)
-                                            <div class="me-3 mb-2 d-flex align-items-center">
-                                                @if($item->product_image)
-                                                    <img src="{{ asset('storage/' . $item->product_image) }}" 
-                                                         class="rounded me-2" 
-                                                         style="width: 40px; height: 40px; object-fit: cover;">
-                                                @else
-                                                    <div class="bg-light rounded me-2 d-flex align-items-center justify-content-center" 
-                                                         style="width: 40px; height: 40px;">
-                                                        <i class="bi bi-image text-muted small"></i>
-                                                    </div>
-                                                @endif
-                                                <div>
-                                                    <small class="fw-bold">{{ $item->product_name }}</small>
-                                                    <br><small class="text-muted">{{ $item->quantity }}x</small>
+                        <div class="order-body">
+                            <!-- Products Preview -->
+                            <div class="products-preview">
+                                @foreach($order->items->take(3) as $item)
+                                    <div class="product-item">
+                                        <div class="product-image">
+                                            @if($item->product_image)
+                                                <img src="{{ asset('storage/' . $item->product_image) }}" 
+                                                     alt="{{ $item->product_name }}">
+                                            @else
+                                                <div class="image-placeholder">
+                                                    <i class="bi bi-image"></i>
                                                 </div>
-                                            </div>
-                                        @endforeach
-                                        @if($order->items->count() > 3)
-                                            <div class="align-self-center">
-                                                <small class="text-muted">+{{ $order->items->count() - 3 }} produk lainnya</small>
-                                            </div>
-                                        @endif
+                                            @endif
+                                        </div>
+                                        <div class="product-details">
+                                            <div class="product-name">{{ $item->product_name }}</div>
+                                            <div class="product-quantity">{{ $item->quantity }}x</div>
+                                        </div>
                                     </div>
+                                @endforeach
+                                @if($order->items->count() > 3)
+                                    <div class="more-products">
+                                        +{{ $order->items->count() - 3 }} lainnya
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Order Summary -->
+                            <div class="order-summary">
+                                <div class="total-amount">
+                                    Rp {{ number_format($order->total_amount, 0, ',', '.') }}
                                 </div>
-                                <div class="col-md-4 text-md-end">
-                                    <div class="fw-bold text-primary">
-                                        Rp {{ number_format($order->total_amount, 0, ',', '.') }}
-                                    </div>
-                                    <small class="text-muted">{{ $order->items->sum('quantity') }} item</small>
+                                <div class="total-items">
+                                    {{ $order->items->sum('quantity') }} item
                                 </div>
                             </div>
-                            
+
                             <!-- Payment Method -->
                             @if($order->paymentMethod)
-                                <div class="mb-3">
-                                    <small class="text-muted">
-                                        <i class="bi bi-credit-card"></i> 
-                                        {{ $order->paymentMethod->name }}
-                                    </small>
+                                <div class="payment-method">
+                                    <i class="bi bi-credit-card"></i>
+                                    {{ $order->paymentMethod->name }}
                                 </div>
                             @endif
-                            
-                            <!-- Order Status Progress (untuk status tertentu) -->
+
+                            <!-- Progress Bar for Active Orders -->
                             @if(in_array($order->status, ['paid', 'processing', 'shipped', 'delivered']))
-                                <div class="progress mb-3" style="height: 6px;">
-                                    @php
-                                        $progress = match($order->status) {
-                                            'paid' => 25,
-                                            'processing' => 50,
-                                            'shipped' => 75,
-                                            'delivered' => 100,
-                                            default => 0
-                                        };
-                                    @endphp
-                                    <div class="progress-bar bg-success" 
-                                         style="width: {{ $progress }}%"></div>
-                                </div>
-                                <div class="row text-center small text-muted">
-                                    <div class="col-3">
-                                        <i class="bi bi-check-circle {{ $order->paid_at ? 'text-success' : '' }}"></i>
-                                        <br>Dibayar
+                                <div class="order-progress">
+                                    <div class="progress-bar">
+                                        @php
+                                            $progress = match($order->status) {
+                                                'paid' => 25,
+                                                'processing' => 50,
+                                                'shipped' => 75,
+                                                'delivered' => 100,
+                                                default => 0
+                                            };
+                                        @endphp
+                                        <div class="progress-fill" style="width: {{ $progress }}%"></div>
                                     </div>
-                                    <div class="col-3">
-                                        <i class="bi bi-gear {{ $order->status === 'processing' ? 'text-success' : '' }}"></i>
-                                        <br>Diproses
-                                    </div>
-                                    <div class="col-3">
-                                        <i class="bi bi-truck {{ $order->shipped_at ? 'text-success' : '' }}"></i>
-                                        <br>Dikirim
-                                    </div>
-                                    <div class="col-3">
-                                        <i class="bi bi-house-check {{ $order->delivered_at ? 'text-success' : '' }}"></i>
-                                        <br>Selesai
+                                    <div class="progress-steps">
+                                        <div class="step {{ $order->paid_at ? 'completed' : '' }}">
+                                            <i class="bi bi-check-circle"></i>
+                                            <span>Dibayar</span>
+                                        </div>
+                                        <div class="step {{ $order->status === 'processing' || in_array($order->status, ['shipped', 'delivered']) ? 'completed' : '' }}">
+                                            <i class="bi bi-gear"></i>
+                                            <span>Diproses</span>
+                                        </div>
+                                        <div class="step {{ $order->shipped_at ? 'completed' : '' }}">
+                                            <i class="bi bi-truck"></i>
+                                            <span>Dikirim</span>
+                                        </div>
+                                        <div class="step {{ $order->delivered_at ? 'completed' : '' }}">
+                                            <i class="bi bi-house-check"></i>
+                                            <span>Selesai</span>
+                                        </div>
                                     </div>
                                 </div>
                             @endif
-                            
-                            <!-- Action Buttons -->
-                            <div class="d-flex justify-content-between align-items-center mt-3">
-                                <div>
-                                    @if($order->status === 'pending')
-                                        <small class="text-muted">
-                                            <i class="bi bi-clock"></i> 
-                                            Menunggu pembayaran
-                                        </small>
-                                    @elseif($order->status === 'paid')
-                                        <small class="text-success">
-                                            <i class="bi bi-check-circle"></i> 
-                                            Pembayaran terverifikasi
-                                        </small>
-                                    @elseif($order->paymentProof && $order->paymentProof->status === 'pending')
-                                        <small class="text-warning">
-                                            <i class="bi bi-hourglass-split"></i> 
-                                            Menunggu verifikasi pembayaran
-                                        </small>
-                                    @endif
-                                </div>
-                                <div class="btn-group" role="group">
-                                    <a href="{{ route('orders.show', $order->id) }}" 
-                                       class="btn btn-outline-primary btn-sm">
-                                        <i class="bi bi-eye"></i> Detail
-                                    </a>
-                                    
-                                    @if($order->status === 'pending' && !$order->has_payment_proof)
-                                        <a href="{{ route('checkout.payment', $order->id) }}" 
-                                           class="btn btn-primary btn-sm">
-                                            <i class="bi bi-credit-card"></i> Bayar
-                                        </a>
-                                    @endif
-                                    
-                                    @if($order->status === 'pending')
-                                        <form method="POST" 
-                                              action="{{ route('orders.cancel', $order->id) }}" 
-                                              class="d-inline">
-                                            @csrf
-                                            @method('PUT')
-                                            <button type="submit" 
-                                                    class="btn btn-outline-danger btn-sm"
-                                                    onclick="return confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')">
-                                                <i class="bi bi-x-circle"></i> Batalkan
-                                            </button>
-                                        </form>
-                                    @endif
-                                    
-                                    @if($order->status === 'delivered')
-                                        <button class="btn btn-outline-warning btn-sm" 
-                                                title="Beri Ulasan">
-                                            <i class="bi bi-star"></i> Review
-                                        </button>
-                                    @endif
-                                </div>
+
+                            <!-- Status Message -->
+                            <div class="status-message">
+                                @if($order->status === 'pending')
+                                    <div class="message warning">
+                                        <i class="bi bi-clock"></i>
+                                        Menunggu pembayaran
+                                    </div>
+                                @elseif($order->status === 'paid')
+                                    <div class="message success">
+                                        <i class="bi bi-check-circle"></i>
+                                        Pembayaran terverifikasi
+                                    </div>
+                                @elseif($order->paymentProof && $order->paymentProof->status === 'pending')
+                                    <div class="message warning">
+                                        <i class="bi bi-hourglass-split"></i>
+                                        Menunggu verifikasi pembayaran
+                                    </div>
+                                @endif
                             </div>
                         </div>
+
+                        <!-- Action Buttons -->
+                        <div class="order-actions">
+                            <a href="{{ route('orders.show', $order->id) }}" class="btn btn-outline">
+                                <i class="bi bi-eye"></i>
+                                Detail
+                            </a>
+                            
+                            @if($order->status === 'pending' && !$order->has_payment_proof)
+                                <a href="{{ route('checkout.payment', $order->id) }}" class="btn btn-primary">
+                                    <i class="bi bi-credit-card"></i>
+                                    Bayar
+                                </a>
+                            @endif
+                            
+                            @if($order->status === 'pending')
+                                <form method="POST" 
+                                      action="{{ route('orders.cancel', $order->id) }}" 
+                                      class="d-inline">
+                                    @csrf
+                                    @method('PUT')
+                                    <button type="submit" 
+                                            class="btn btn-danger"
+                                            onclick="return confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')">
+                                        <i class="bi bi-x-circle"></i>
+                                        <span class="btn-text">Batalkan</span>
+                                    </button>
+                                </form>
+                            @endif
+                            
+                            @if($order->status === 'delivered')
+                                <button class="btn btn-outline" title="Beri Ulasan">
+                                    <i class="bi bi-star"></i>
+                                    Review
+                                </button>
+                            @endif
+                        </div>
                     </div>
-                </div>
-            @endforeach
-        </div>
-        
-        <!-- Pagination -->
-        <div class="d-flex justify-content-center">
-            {{ $orders->links() }}
-        </div>
-    @else
-        <!-- Empty State -->
-        <div class="text-center py-5">
-            <div class="mb-4">
-                <i class="bi bi-bag-x text-muted" style="font-size: 4rem;"></i>
+                @endforeach
             </div>
-            <h4 class="text-muted">
-                @if(request('status'))
-                    Tidak Ada Pesanan dengan Status 
-                    @switch(request('status'))
-                        @case('pending')
-                            "Menunggu Pembayaran"
-                            @break
-                        @case('paid')
-                            "Sudah Dibayar"
-                            @break
-                        @case('processing')
-                            "Sedang Diproses"
-                            @break
-                        @case('shipped')
-                            "Sedang Dikirim"
-                            @break
-                        @case('delivered')
-                            "Selesai"
-                            @break
-                        @case('cancelled')
-                            "Dibatalkan"
-                            @break
-                    @endswitch
-                @else
-                    Belum Ada Pesanan
-                @endif
-            </h4>
-            <p class="text-muted mb-4">
-                @if(request('status'))
-                    Coba lihat pesanan dengan status lain atau mulai berbelanja sekarang.
-                @else
-                    Mulai berbelanja dan buat pesanan pertama Anda!
-                @endif
-            </p>
-            <a href="{{ route('products.index') }}" class="btn btn-primary">
-                <i class="bi bi-grid"></i> Mulai Belanja
-            </a>
-        </div>
-    @endif
+            
+            <!-- Pagination -->
+            <div class="pagination-wrapper">
+                {{ $orders->links() }}
+            </div>
+        @else
+            <!-- Empty State -->
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="bi bi-bag-x"></i>
+                </div>
+                <div class="empty-content">
+                    <h3>
+                        @if(request('status'))
+                            Tidak Ada Pesanan dengan Status 
+                            @switch(request('status'))
+                                @case('pending')
+                                    "Menunggu Pembayaran"
+                                    @break
+                                @case('paid')
+                                    "Sudah Dibayar"
+                                    @break
+                                @case('processing')
+                                    "Sedang Diproses"
+                                    @break
+                                @case('shipped')
+                                    "Sedang Dikirim"
+                                    @break
+                                @case('delivered')
+                                    "Selesai"
+                                    @break
+                                @case('cancelled')
+                                    "Dibatalkan"
+                                    @break
+                            @endswitch
+                        @else
+                            Belum Ada Pesanan
+                        @endif
+                    </h3>
+                    <p>
+                        @if(request('status'))
+                            Coba lihat pesanan dengan status lain atau mulai berbelanja sekarang.
+                        @else
+                            Mulai berbelanja dan buat pesanan pertama Anda!
+                        @endif
+                    </p>
+                    <a href="{{ route('products.index') }}" class="btn btn-primary">
+                        <i class="bi bi-grid"></i>
+                        Mulai Belanja
+                    </a>
+                </div>
+            </div>
+        @endif
+    </div>
 </div>
 
-@push('styles')
 <style>
-.nav-pills .nav-link {
-    color: #6c757d;
-    border-radius: 20px;
-    margin-right: 5px;
-    transition: all 0.3s ease;
+:root {
+    --shopee-orange: #ff5722;
+    --shopee-dark-orange: #e64a19;
+    --shopee-light-orange: #ffab91;
+    --shopee-red: #d32f2f;
+    --text-dark: #333333;
+    --text-gray: #666666;
+    --text-light: #999999;
+    --border-light: #e0e0e0;
+    --background-light: #f5f5f5;
+    --white: #ffffff;
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    --shadow-hover: 0 4px 16px rgba(0,0,0,0.15);
+    --success: #28a745;
+    --warning: #ffc107;
+    --danger: #dc3545;
+    --info: #17a2b8;
+    --primary: #007bff;
+    --secondary: #6c757d;
 }
 
-.nav-pills .nav-link:hover {
-    background-color: #f8f9fa;
-    color: #495057;
+.orders-page {
+    background: var(--background-light);
+    min-height: 100vh;
 }
 
-.nav-pills .nav-link.active {
-    background-color: #28a745;
+/* Page Header */
+.page-header {
+    background: linear-gradient(135deg, var(--shopee-orange) 0%, var(--shopee-red) 100%);
+    color: white;
+    padding: 2rem 0 1rem;
+}
+
+.page-title {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.breadcrumb {
+    background: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.breadcrumb-item a {
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+}
+
+.breadcrumb-item.active {
     color: white;
 }
 
-.nav-pills .nav-link.active .badge {
-    background-color: rgba(255,255,255,0.3) !important;
+/* Status Filter */
+.status-filter-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: var(--shadow);
 }
 
-.card {
-    border: 1px solid #e9ecef;
-    transition: box-shadow 0.3s ease;
+.filter-pills-container {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
 }
 
-.card:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+.filter-pills {
+    display: flex;
+    gap: 0.75rem;
+    min-width: max-content;
+}
+
+.filter-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--background-light);
+    color: var(--text-gray);
+    text-decoration: none;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.filter-pill:hover {
+    background: var(--shopee-light-orange);
+    color: var(--shopee-dark-orange);
+    transform: translateY(-1px);
+}
+
+.filter-pill.active {
+    background: var(--shopee-orange);
+    color: white;
+}
+
+.pill-badge {
+    background: rgba(255,255,255,0.8);
+    color: var(--text-dark);
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+}
+
+.filter-pill.active .pill-badge {
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+
+.pill-badge.warning { background-color: var(--warning); color: white; }
+.pill-badge.info { background-color: var(--info); color: white; }
+.pill-badge.primary { background-color: var(--primary); color: white; }
+.pill-badge.secondary { background-color: var(--secondary); color: white; }
+.pill-badge.success { background-color: var(--success); color: white; }
+.pill-badge.danger { background-color: var(--danger); color: white; }
+
+/* Orders Grid */
+.orders-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.order-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-light);
+}
+
+.order-card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+}
+
+.order-header {
+    padding: 1.25rem;
+    background: var(--background-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.order-number {
+    font-weight: bold;
+    color: var(--text-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+}
+
+.order-date {
+    color: var(--text-light);
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.order-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-badge.pending { background: #fff3cd; color: #856404; }
+.status-badge.paid { background: #d1ecf1; color: #0c5460; }
+.status-badge.processing { background: #cce5ff; color: #004085; }
+.status-badge.shipped { background: #e2e3e5; color: #383d41; }
+.status-badge.delivered { background: #d4edda; color: #155724; }
+.status-badge.cancelled { background: #f8d7da; color: #721c24; }
+
+.payment-indicator {
+    color: var(--success);
+    font-size: 1.2rem;
+}
+
+/* Order Body */
+.order-body {
+    padding: 1.25rem;
+}
+
+.products-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: center;
+}
+
+.product-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 200px;
+}
+
+.product-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--background-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    font-size: 1.2rem;
+}
+
+.product-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.product-name {
+    font-weight: 500;
+    color: var(--text-dark);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.product-quantity {
+    color: var(--text-light);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.more-products {
+    color: var(--text-light);
+    font-size: 0.85rem;
+    font-style: italic;
+    padding: 0.5rem;
+    background: var(--background-light);
+    border-radius: 6px;
+}
+
+.order-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: var(--background-light);
+    border-radius: 8px;
+}
+
+.total-amount {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--shopee-orange);
+}
+
+.total-items {
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.payment-method {
+    color: var(--text-gray);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Progress Bar */
+.order-progress {
+    margin: 1rem 0;
 }
 
 .progress-bar {
+    height: 4px;
+    background: var(--border-light);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success) 0%, var(--info) 100%);
     transition: width 0.6s ease;
 }
 
-.btn-group .btn {
-    border-radius: 4px;
-    margin-left: 2px;
+.progress-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
 }
 
-.btn-group .btn:first-child {
-    margin-left: 0;
+.step {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-light);
 }
 
+.step.completed {
+    color: var(--success);
+}
+
+.step i {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Status Messages */
+.status-message {
+    margin-bottom: 1rem;
+}
+
+.message {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.message.warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+/* Action Buttons */
+.order-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--background-light);
+    border-top: 1px solid var(--border-light);
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: var(--shopee-orange);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--shopee-dark-orange);
+    transform: translateY(-1px);
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--shopee-orange);
+    border: 1px solid var(--shopee-orange);
+}
+
+.btn-outline:hover {
+    background: var(--shopee-orange);
+    color: white;
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+}
+
+.empty-content h3 {
+    color: var(--text-gray);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.empty-content p {
+    color: var(--text-light);
+    margin-bottom: 2rem;
+    font-size: 1rem;
+}
+
+/* Pagination */
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
-    .nav-pills {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        padding-bottom: 10px;
+    .page-title {
+        font-size: 1.5rem;
     }
     
-    .nav-pills .nav-item {
-        flex: 0 0 auto;
-    }
-    
-    .btn-group {
+    .order-header {
+        padding: 1rem;
         flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .order-body {
+        padding: 1rem;
+    }
+    
+    .products-preview {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .product-item {
+        min-width: auto;
+        flex: none;
+    }
+    
+    .order-summary {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .progress-steps {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .order-actions {
+        padding: 1rem;
+        justify-content: center;
+    }
+    
+    .btn {
+        flex: 1;
+        justify-content: center;
+        min-width: 100px;
+    }
+    
+    .btn-text {
+        display: none;
+    }
+}
+
+@media (max-width: 576px) {
+    .filter-pills {
+        padding: 0 1rem;
+    }
+    
+    .filter-pill {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .product-name {
+        font-size: 0.85rem;
+    }
+    
+    .order-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
         width: 100%;
     }
     
-    .btn-group .btn {
-        margin: 1px 0;
-        border-radius: 4px !important;
+    .btn-text {
+        display: inline;
     }
 }
 </style>
-@endpush
 
 @push('scripts')
 <script>
@@ -376,6 +848,15 @@ $(document).ready(function() {
             location.reload();
         }, 300000); // 5 minutes
     }
+    
+    // Smooth scroll untuk filter pills di mobile
+    $('.filter-pills-container').on('scroll', function() {
+        $(this).addClass('scrolling');
+        clearTimeout($(this).data('scrollTimeout'));
+        $(this).data('scrollTimeout', setTimeout(function() {
+            $('.filter-pills-container').removeClass('scrolling');
+        }, 150));
+    });
 });
 </script>
 @endpush
