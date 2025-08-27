@@ -1,7 +1,6 @@
 <?php
 // routes/web.php
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Response;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\HomeController;
@@ -59,6 +58,8 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
         Route::get('/{order}', [OrderHistoryController::class, 'show'])->name('show');
         Route::put('/{order}/cancel', [OrderHistoryController::class, 'cancel'])->name('cancel');
     });
+
+    // Voucher routes
     Route::prefix('vouchers')->name('vouchers.')->group(function () {
         Route::post('/apply', [CheckoutController::class, 'applyVoucher'])->name('apply');
         Route::delete('/remove', [CheckoutController::class, 'removeVoucher'])->name('remove');
@@ -66,17 +67,20 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
     });
 });
 
-// Route untuk akses file di storage/app/public tanpa artisan storage:link
+// ================================================
+// Tambahan route untuk serve file dari storage
+// ================================================
 Route::get('/storage/{path}', function ($path) {
-    $filePath = storage_path('app/public/' . $path);
+    $fullPath = storage_path('app/public/' . $path);
 
-    if (!file_exists($filePath)) {
-        abort(404);
+    if (!file_exists($fullPath)) {
+        abort(404, 'File not found: ' . $path);
     }
 
-    $mimeType = mime_content_type($filePath);
-    return Response::make(file_get_contents($filePath), 200, [
+    $mimeType = mime_content_type($fullPath);
+    return response()->file($fullPath, [
         'Content-Type' => $mimeType,
-        'Cache-Control' => 'public, max-age=31536000',
+        'Cache-Control' => 'public, max-age=86400',
+        'Access-Control-Allow-Origin' => '*',
     ]);
 })->where('path', '.*');
