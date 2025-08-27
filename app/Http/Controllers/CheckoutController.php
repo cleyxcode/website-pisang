@@ -8,12 +8,21 @@ use App\Models\Product;
 use App\Models\PaymentMethod;
 use App\Models\PaymentProof;
 use App\Models\Voucher;
+use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class CheckoutController extends Controller
 {
+    protected $whatsAppService;
+
+    public function __construct(WhatsAppService $whatsAppService)
+    {
+        $this->whatsAppService = $whatsAppService;
+    }
+
     public function index()
     {
         $cart = session()->get('cart', []);
@@ -111,9 +120,6 @@ class CheckoutController extends Controller
                 'message' => 'Minimum pembelian untuk voucher ini adalah Rp ' . number_format($voucher->minimum_amount, 0, ',', '.')
             ]);
         }
-        
-        // Check if user has already used this voucher (you'll need to implement user tracking)
-        // For now, we'll allow multiple uses per session
         
         // Calculate discount
         $discountAmount = 0;
@@ -318,8 +324,16 @@ class CheckoutController extends Controller
                 // Reduce stock
                 $product->decrement('stock', $item['quantity']);
             }
-            
+
             DB::commit();
+            
+            // Send WhatsApp notification to admin about new order
+            try {
+                $this->whatsAppService->notifyAdminNewOrder($order);
+            } catch (\Exception $e) {
+                // Log error tapi jangan gagalkan transaksi
+                
+            }
             
             // Clear cart and voucher session
             session()->forget(['cart', 'applied_voucher']);
@@ -333,15 +347,13 @@ class CheckoutController extends Controller
         }
     }
     
-    // ... rest of your existing methods remain the same ...
-    
     public function payment($orderId)
     {
         $order = Order::with('items.product')->findOrFail($orderId);
         
         // Check if user owns this order (using session or email check)
         $customer = Auth::guard('customer')->user();
-        if ($order->customer_email !== $customer->email) {
+        if ($customer && $order->customer_email !== $customer->email) {
             abort(403, 'Unauthorized');
         }
         
@@ -349,7 +361,7 @@ class CheckoutController extends Controller
             return redirect()->route('home')->with('info', 'Pesanan ini sudah diproses');
         }
         
-        $paymentMethods = PaymentMethod::active()->get();
+        $paymentMethods = PaymentMethod::where('is_active', true)->get();
         
         return view('checkout.payment', compact('order', 'paymentMethods'));
     }
@@ -364,7 +376,7 @@ class CheckoutController extends Controller
         
         // Check if user owns this order
         $customer = Auth::guard('customer')->user();
-        if ($order->customer_email !== $customer->email) {
+        if ($customer && $order->customer_email !== $customer->email) {
             abort(403, 'Unauthorized');
         }
         
@@ -387,7 +399,7 @@ class CheckoutController extends Controller
         
         // Check if user owns this order
         $customer = Auth::guard('customer')->user();
-        if ($order->customer_email !== $customer->email) {
+        if ($customer && $order->customer_email !== $customer->email) {
             abort(403, 'Unauthorized');
         }
         
@@ -420,11 +432,11 @@ class CheckoutController extends Controller
             'transfer_date.before_or_equal' => 'Tanggal transfer tidak boleh lebih dari hari ini',
         ]);
         
-        $order = Order::findOrFail($orderId);
+        $order = Order::with(['items', 'paymentMethod'])->findOrFail($orderId);
         
         // Check if user owns this order
         $customer = Auth::guard('customer')->user();
-        if ($order->customer_email !== $customer->email) {
+        if ($customer && $order->customer_email !== $customer->email) {
             abort(403, 'Unauthorized');
         }
         
@@ -443,7 +455,7 @@ class CheckoutController extends Controller
             $proofPath = $request->file('proof_image')->store('payment-proofs', 'public');
             
             // Create payment proof
-            PaymentProof::create([
+            $paymentProof = PaymentProof::create([
                 'order_id' => $order->id,
                 'payment_method_id' => $order->payment_method_id,
                 'transfer_amount' => $request->transfer_amount,
@@ -462,6 +474,14 @@ class CheckoutController extends Controller
             
             DB::commit();
             
+            // Send WhatsApp notification to admin about payment proof
+            try {
+                $this->whatsAppService->notifyAdminPaymentProof($order, $paymentProof);
+            } catch (\Exception $e) {
+                // Log error tapi jangan gagalkan transaksi
+                
+            }
+            
             return redirect()->route('checkout.success', $order->id)
                            ->with('success', 'Bukti pembayaran berhasil diupload! Pesanan Anda sedang dalam proses verifikasi.');
             
@@ -478,11 +498,63 @@ class CheckoutController extends Controller
         
         // Check if user owns this order
         $customer = Auth::guard('customer')->user();
-        if ($order->customer_email !== $customer->email) {
+        if ($customer && $order->customer_email !== $customer->email) {
             abort(403, 'Unauthorized');
         }
         
         return view('checkout.success', compact('order'));
+    }
+    
+    /**
+     * Customer order tracking
+     */
+    public function track(Request $request)
+    {
+        $request->validate([
+            'order_number' => 'required|string',
+            'email' => 'required|email'
+        ]);
+        
+        $order = Order::with(['items', 'paymentMethod', 'paymentProof'])
+                     ->where('order_number', $request->order_number)
+                     ->where('customer_email', $request->email)
+                     ->first();
+        
+        if (!$order) {
+            return back()->with('error', 'Pesanan tidak ditemukan atau email tidak sesuai');
+        }
+        
+        return view('orders.track', compact('order'));
+    }
+    
+    /**
+     * Resend payment proof upload page
+     */
+    public function resendPaymentProof(Request $request)
+    {
+        $request->validate([
+            'order_number' => 'required|string',
+            'email' => 'required|email'
+        ]);
+        
+        $order = Order::with('paymentMethod')
+                     ->where('order_number', $request->order_number)
+                     ->where('customer_email', $request->email)
+                     ->first();
+        
+        if (!$order) {
+            return back()->with('error', 'Pesanan tidak ditemukan atau email tidak sesuai');
+        }
+        
+        if ($order->status !== 'pending') {
+            return back()->with('error', 'Pesanan ini sudah diproses');
+        }
+        
+        if (!$order->payment_method_id) {
+            return back()->with('error', 'Metode pembayaran belum dipilih');
+        }
+        
+        return view('checkout.payment-proof', compact('order'));
     }
     
     private function calculateSubtotal($cart)

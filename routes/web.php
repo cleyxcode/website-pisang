@@ -26,6 +26,9 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
+    Route::post('/checkout/track', [CheckoutController::class, 'track'])->name('checkout.track');
+    Route::post('/checkout/resend-payment-proof', [CheckoutController::class, 'resendPaymentProof'])->name('checkout.resend-payment-proof');
+
 // Protected routes (harus login sebagai customer)
 Route::middleware(['web', 'auth:customer'])->group(function () {
     // Product detail hanya bisa diakses setelah login
@@ -50,6 +53,8 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
         Route::get('/{order}/payment-proof', [CheckoutController::class, 'paymentProof'])->name('payment-proof');
         Route::post('/{order}/payment-proof', [CheckoutController::class, 'storePaymentProof'])->name('store-payment-proof');
         Route::get('/{order}/success', [CheckoutController::class, 'success'])->name('success');
+        // web.php
+
     });
     
     // Order History routes
@@ -65,22 +70,7 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
         Route::delete('/remove', [CheckoutController::class, 'removeVoucher'])->name('remove');
         Route::post('/validate', [CheckoutController::class, 'validateVoucher'])->name('validate');
     });
+    
 });
 
-// ================================================
-// Tambahan route untuk serve file dari storage
-// ================================================
-Route::get('/storage/{path}', function ($path) {
-    $fullPath = storage_path('app/public/' . $path);
 
-    if (!file_exists($fullPath)) {
-        abort(404, 'File not found: ' . $path);
-    }
-
-    $mimeType = mime_content_type($fullPath);
-    return response()->file($fullPath, [
-        'Content-Type' => $mimeType,
-        'Cache-Control' => 'public, max-age=86400',
-        'Access-Control-Allow-Origin' => '*',
-    ]);
-})->where('path', '.*');
