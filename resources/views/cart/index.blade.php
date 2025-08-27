@@ -131,16 +131,65 @@
                     </div>
                 </div>
                 
-                <!-- Promo Info -->
-                <div class="card mt-3">
-                    <div class="card-body text-center">
-                        <i class="bi bi-gift text-primary" style="font-size: 2rem;"></i>
-                        <h6 class="mt-2">Ada Voucher?</h6>
-                        <p class="text-muted small">Anda bisa memasukkan kode voucher saat checkout untuk mendapatkan diskon!</p>
+                <!-- Available Vouchers -->
+                @if(isset($availableVouchers) && $availableVouchers->count() > 0)
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-ticket-perforated text-primary"></i> Voucher Tersedia</h6>
+                        </div>
+                        <div class="card-body">
+                            @foreach($availableVouchers as $voucher)
+                                <div class="border rounded p-2 mb-2 small">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong class="text-primary">{{ $voucher->code }}</strong>
+                                            <br>
+                                            <span class="text-muted">{{ Str::limit($voucher->name, 40) }}</span>
+                                            <br>
+                                            <span class="badge bg-{{ $voucher->discount_type === 'percentage' ? 'success' : ($voucher->discount_type === 'fixed' ? 'warning' : 'info') }} badge-sm">
+                                                {{ $voucher->formatted_discount }}
+                                            </span>
+                                        </div>
+                                        <div class="text-end">
+                                            @if($voucher->minimum_amount && $total < $voucher->minimum_amount)
+                                                <small class="text-muted">
+                                                    Min. Rp {{ number_format($voucher->minimum_amount, 0, ',', '.') }}
+                                                </small>
+                                            @else
+                                                <button class="btn btn-outline-primary btn-sm" 
+                                                        onclick="copyVoucherCode('{{ $voucher->code }}')"
+                                                        title="Salin kode">
+                                                    <i class="bi bi-copy"></i>
+                                                </button>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    @if($voucher->expires_at)
+                                        <div class="text-muted small mt-1">
+                                            <i class="bi bi-clock"></i> Berlaku hingga {{ $voucher->expires_at->format('d M Y') }}
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                            
+                            <div class="text-center mt-2">
+                                <small class="text-muted">Gunakan kode voucher saat checkout untuk mendapatkan diskon!</small>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                @else
+                    <!-- Fallback Promo Info when no vouchers available -->
+                    <div class="card mt-3">
+                        <div class="card-body text-center">
+                            <i class="bi bi-gift text-primary" style="font-size: 2rem;"></i>
+                            <h6 class="mt-2">Ada Voucher?</h6>
+                            <p class="text-muted small">Anda bisa memasukkan kode voucher saat checkout untuk mendapatkan diskon!</p>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
+        
     @else
         <!-- Empty Cart -->
         <div class="text-center py-5">
@@ -247,6 +296,41 @@ function clearCart() {
             showAlert('danger', 'Terjadi kesalahan saat mengosongkan keranjang');
         }
     });
+}
+
+// Voucher functions
+function copyVoucherCode(code) {
+    // Copy to clipboard
+    navigator.clipboard.writeText(code).then(function() {
+        // Show success message
+        showAlert('success', `Kode voucher "${code}" berhasil disalin! Gunakan saat checkout.`);
+    }).catch(function() {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = code;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        showAlert('success', `Kode voucher "${code}" berhasil disalin! Gunakan saat checkout.`);
+    });
+}
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            <i class="bi bi-${type === 'success' ? 'check-circle' : 'info-circle'}"></i> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    $('body').append(alertHtml);
+    
+    // Auto dismiss after 4 seconds
+    setTimeout(function() {
+        $('.alert').last().alert('close');
+    }, 4000);
 }
 </script>
 @endpush

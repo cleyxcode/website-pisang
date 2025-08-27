@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Voucher;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
@@ -12,7 +13,20 @@ class CartController extends Controller
         $cart = session()->get('cart', []);
         $total = $this->calculateTotal($cart);
         
-        return view('cart.index', compact('cart', 'total'));
+        // Get available vouchers
+        $availableVouchers = collect();
+        if (class_exists('App\Models\Voucher')) {
+            $availableVouchers = Voucher::active()
+                ->where(function($q) use ($total) {
+                    $q->whereNull('minimum_amount')
+                      ->orWhere('minimum_amount', '<=', $total);
+                })
+                ->orderBy('discount_value', 'desc')
+                ->take(3)
+                ->get();
+        }
+        
+        return view('cart.index', compact('cart', 'total', 'availableVouchers'));
     }
 
     public function add(Request $request)

@@ -7,6 +7,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\PaymentMethod;
 use App\Models\PaymentProof;
+use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -36,12 +37,193 @@ class CheckoutController extends Controller
         
         $subtotal = $this->calculateSubtotal($cart);
         $shippingCost = 15000; // Fixed shipping cost
-        $total = $subtotal + $shippingCost;
+        
+        // Get applied voucher from session
+        $appliedVoucher = session()->get('applied_voucher');
+        $discountAmount = 0;
+        $freeShipping = false;
+        
+        if ($appliedVoucher) {
+            $voucher = Voucher::find($appliedVoucher['id']);
+            if ($voucher && $voucher->isUsable()) {
+                if ($voucher->discount_type === 'free_shipping') {
+                    $freeShipping = true;
+                } else {
+                    $discountAmount = $voucher->calculateDiscount($subtotal);
+                }
+            } else {
+                // Remove invalid voucher
+                session()->forget('applied_voucher');
+                $appliedVoucher = null;
+            }
+        }
+        
+        $finalShippingCost = $freeShipping ? 0 : $shippingCost;
+        $total = $subtotal + $finalShippingCost - $discountAmount;
         
         // Get customer info
         $customer = Auth::guard('customer')->user();
         
-        return view('checkout.index', compact('cart', 'subtotal', 'shippingCost', 'total', 'customer'));
+        return view('checkout.index', compact(
+            'cart', 
+            'subtotal', 
+            'shippingCost',
+            'finalShippingCost', 
+            'discountAmount',
+            'total', 
+            'customer', 
+            'appliedVoucher'
+        ));
+    }
+    
+    public function applyVoucher(Request $request)
+    {
+        $request->validate([
+            'voucher_code' => 'required|string|max:50'
+        ]);
+        
+        $voucherCode = strtoupper(trim($request->voucher_code));
+        
+        // Find voucher
+        $voucher = Voucher::where('code', $voucherCode)->first();
+        
+        if (!$voucher) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kode voucher tidak ditemukan'
+            ]);
+        }
+        
+        if (!$voucher->isUsable()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Voucher tidak dapat digunakan: ' . $voucher->status
+            ]);
+        }
+        
+        $cart = session()->get('cart', []);
+        $subtotal = $this->calculateSubtotal($cart);
+        
+        // Check minimum amount
+        if ($voucher->minimum_amount && $subtotal < $voucher->minimum_amount) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Minimum pembelian untuk voucher ini adalah Rp ' . number_format($voucher->minimum_amount, 0, ',', '.')
+            ]);
+        }
+        
+        // Check if user has already used this voucher (you'll need to implement user tracking)
+        // For now, we'll allow multiple uses per session
+        
+        // Calculate discount
+        $discountAmount = 0;
+        $freeShipping = false;
+        
+        if ($voucher->discount_type === 'free_shipping') {
+            $freeShipping = true;
+        } else {
+            $discountAmount = $voucher->calculateDiscount($subtotal);
+        }
+        
+        // Store voucher in session
+        session()->put('applied_voucher', [
+            'id' => $voucher->id,
+            'code' => $voucher->code,
+            'name' => $voucher->name,
+            'discount_type' => $voucher->discount_type,
+            'discount_amount' => $discountAmount,
+            'free_shipping' => $freeShipping
+        ]);
+        
+        $shippingCost = 15000;
+        $finalShippingCost = $freeShipping ? 0 : $shippingCost;
+        $newTotal = $subtotal + $finalShippingCost - $discountAmount;
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Voucher berhasil diterapkan!',
+            'voucher' => [
+                'code' => $voucher->code,
+                'name' => $voucher->name,
+                'discount_type' => $voucher->discount_type,
+                'discount_amount' => $discountAmount,
+                'free_shipping' => $freeShipping,
+                'formatted_discount' => $voucher->formatted_discount
+            ],
+            'totals' => [
+                'subtotal' => number_format($subtotal, 0, ',', '.'),
+                'shipping_cost' => number_format($finalShippingCost, 0, ',', '.'),
+                'discount_amount' => number_format($discountAmount, 0, ',', '.'),
+                'total' => number_format($newTotal, 0, ',', '.')
+            ]
+        ]);
+    }
+    
+    public function removeVoucher()
+    {
+        session()->forget('applied_voucher');
+        
+        $cart = session()->get('cart', []);
+        $subtotal = $this->calculateSubtotal($cart);
+        $shippingCost = 15000;
+        $total = $subtotal + $shippingCost;
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Voucher berhasil dihapus',
+            'totals' => [
+                'subtotal' => number_format($subtotal, 0, ',', '.'),
+                'shipping_cost' => number_format($shippingCost, 0, ',', '.'),
+                'discount_amount' => '0',
+                'total' => number_format($total, 0, ',', '.')
+            ]
+        ]);
+    }
+    
+    public function validateVoucher(Request $request)
+    {
+        $request->validate([
+            'voucher_code' => 'required|string|max:50'
+        ]);
+        
+        $voucherCode = strtoupper(trim($request->voucher_code));
+        $voucher = Voucher::where('code', $voucherCode)->first();
+        
+        if (!$voucher) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Kode voucher tidak ditemukan'
+            ]);
+        }
+        
+        if (!$voucher->isUsable()) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Voucher tidak dapat digunakan: ' . $voucher->status
+            ]);
+        }
+        
+        $cart = session()->get('cart', []);
+        $subtotal = $this->calculateSubtotal($cart);
+        
+        if ($voucher->minimum_amount && $subtotal < $voucher->minimum_amount) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Minimum pembelian Rp ' . number_format($voucher->minimum_amount, 0, ',', '.')
+            ]);
+        }
+        
+        return response()->json([
+            'valid' => true,
+            'voucher' => [
+                'code' => $voucher->code,
+                'name' => $voucher->name,
+                'description' => $voucher->description,
+                'formatted_discount' => $voucher->formatted_discount,
+                'minimum_amount' => $voucher->minimum_amount,
+                'expires_at' => $voucher->expires_at ? $voucher->expires_at->format('d M Y') : null
+            ]
+        ]);
     }
     
     public function store(Request $request)
@@ -73,7 +255,32 @@ class CheckoutController extends Controller
             
             $subtotal = $this->calculateSubtotal($cart);
             $shippingCost = 15000;
-            $total = $subtotal + $shippingCost;
+            
+            // Process voucher
+            $appliedVoucher = session()->get('applied_voucher');
+            $discountAmount = 0;
+            $finalShippingCost = $shippingCost;
+            $voucherId = null;
+            $voucherCode = null;
+            
+            if ($appliedVoucher) {
+                $voucher = Voucher::find($appliedVoucher['id']);
+                if ($voucher && $voucher->isUsable()) {
+                    $voucherId = $voucher->id;
+                    $voucherCode = $voucher->code;
+                    
+                    if ($voucher->discount_type === 'free_shipping') {
+                        $finalShippingCost = 0;
+                    } else {
+                        $discountAmount = $voucher->calculateDiscount($subtotal);
+                    }
+                    
+                    // Increment voucher usage
+                    $voucher->incrementUsage();
+                }
+            }
+            
+            $total = $subtotal + $finalShippingCost - $discountAmount;
             
             // Create order
             $order = Order::create([
@@ -82,12 +289,14 @@ class CheckoutController extends Controller
                 'customer_phone' => $request->customer_phone,
                 'customer_address' => $request->customer_address,
                 'subtotal' => $subtotal,
-                'shipping_cost' => $shippingCost,
+                'shipping_cost' => $finalShippingCost,
+                'discount_amount' => $discountAmount,
                 'total_amount' => $total,
+                'voucher_id' => $voucherId,
+                'voucher_code' => $voucherCode,
                 'payment_method' => 'manual',
                 'status' => 'pending',
                 'notes' => $request->notes,
-                'discount_amount' => 0,
                 'has_payment_proof' => false,
             ]);
             
@@ -112,8 +321,8 @@ class CheckoutController extends Controller
             
             DB::commit();
             
-            // Clear cart
-            session()->forget('cart');
+            // Clear cart and voucher session
+            session()->forget(['cart', 'applied_voucher']);
             
             return redirect()->route('checkout.payment', $order->id)
                            ->with('success', 'Pesanan berhasil dibuat! Silakan pilih metode pembayaran.');
@@ -123,6 +332,8 @@ class CheckoutController extends Controller
             return back()->withInput()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
+    
+    // ... rest of your existing methods remain the same ...
     
     public function payment($orderId)
     {
@@ -262,7 +473,7 @@ class CheckoutController extends Controller
     
     public function success($orderId)
     {
-        $order = Order::with(['items', 'paymentMethod', 'paymentProof'])
+        $order = Order::with(['items', 'paymentMethod', 'paymentProof', 'voucher'])
                      ->findOrFail($orderId);
         
         // Check if user owns this order

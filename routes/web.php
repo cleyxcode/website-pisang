@@ -58,4 +58,9 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
         Route::get('/{order}', [OrderHistoryController::class, 'show'])->name('show');
         Route::put('/{order}/cancel', [OrderHistoryController::class, 'cancel'])->name('cancel');
     });
+    Route::prefix('vouchers')->name('vouchers.')->group(function () {
+        Route::post('/apply', [CheckoutController::class, 'applyVoucher'])->name('apply');
+        Route::delete('/remove', [CheckoutController::class, 'removeVoucher'])->name('remove');
+        Route::post('/validate', [CheckoutController::class, 'validateVoucher'])->name('validate');
+    });
 });

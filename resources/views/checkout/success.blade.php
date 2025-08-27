@@ -41,6 +41,17 @@
                                         </span>
                                     </td>
                                 </tr>
+                                @if($order->voucher_code)
+                                    <tr>
+                                        <td><strong>Voucher:</strong></td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ $order->voucher_code }}</span>
+                                            @if($order->voucher)
+                                                <br><small class="text-muted">{{ $order->voucher->name }}</small>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endif
                                 <tr>
                                     <td><strong>Total:</strong></td>
                                     <td><strong class="text-primary">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</strong></td>
@@ -71,6 +82,42 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Voucher Savings Info -->
+            @if($order->discount_amount > 0 || $order->shipping_cost == 0)
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-ticket-perforated"></i> Penghematan dengan Voucher</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            @if($order->discount_amount > 0)
+                                <div class="col-md-6">
+                                    <i class="bi bi-percent text-success" style="font-size: 2rem;"></i>
+                                    <h5 class="text-success">Rp {{ number_format($order->discount_amount, 0, ',', '.') }}</h5>
+                                    <p class="text-muted small mb-0">Diskon Produk</p>
+                                </div>
+                            @endif
+                            @if($order->shipping_cost == 0 && $order->voucher && $order->voucher->discount_type === 'free_shipping')
+                                <div class="col-md-6">
+                                    <i class="bi bi-truck text-info" style="font-size: 2rem;"></i>
+                                    <h5 class="text-info">GRATIS</h5>
+                                    <p class="text-muted small mb-0">Ongkos Kirim</p>
+                                </div>
+                            @endif
+                        </div>
+                        @php
+                            $totalSavings = $order->discount_amount + ($order->shipping_cost == 0 ? 15000 : 0);
+                        @endphp
+                        @if($totalSavings > 0)
+                            <hr>
+                            <div class="text-center">
+                                <strong class="text-success">Total Penghematan: Rp {{ number_format($totalSavings, 0, ',', '.') }}</strong>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
 
             <!-- Payment Status -->
             @if($order->paymentProof)
@@ -178,11 +225,17 @@
                                 </div>
                                 <div class="d-flex justify-content-between mb-1">
                                     <span>Ongkos Kirim:</span>
-                                    <span>Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</span>
+                                    <span class="{{ $order->shipping_cost == 0 ? 'text-success' : '' }}">
+                                        @if($order->shipping_cost == 0 && $order->voucher && $order->voucher->discount_type === 'free_shipping')
+                                            <del class="text-muted">Rp 15.000</del> <strong>GRATIS</strong>
+                                        @else
+                                            Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}
+                                        @endif
+                                    </span>
                                 </div>
                                 @if($order->discount_amount > 0)
                                     <div class="d-flex justify-content-between mb-1 text-success">
-                                        <span>Diskon:</span>
+                                        <span><i class="bi bi-ticket-perforated"></i> Diskon Voucher:</span>
                                         <span>-Rp {{ number_format($order->discount_amount, 0, ',', '.') }}</span>
                                     </div>
                                 @endif

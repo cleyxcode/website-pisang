@@ -133,6 +133,56 @@
 
             <!-- Order Summary -->
             <div class="col-md-4">
+                <!-- Voucher Section -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-ticket-perforated"></i> Kode Voucher</h5>
+                    </div>
+                    <div class="card-body">
+                        @if($appliedVoucher)
+                            <!-- Applied Voucher Display -->
+                            <div class="alert alert-success" id="appliedVoucherAlert">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="alert-heading mb-1"><i class="bi bi-check-circle"></i> Voucher Aktif</h6>
+                                        <strong>{{ $appliedVoucher['code'] }}</strong><br>
+                                        <small class="text-muted">{{ $appliedVoucher['name'] }}</small><br>
+                                        @if($appliedVoucher['free_shipping'])
+                                            <span class="badge bg-info">Gratis Ongkir</span>
+                                        @else
+                                            <span class="badge bg-success">Diskon Rp {{ number_format($appliedVoucher['discount_amount'], 0, ',', '.') }}</span>
+                                        @endif
+                                    </div>
+                                    <button type="button" class="btn-close" onclick="removeVoucher()"></button>
+                                </div>
+                            </div>
+                        @else
+                            <!-- Voucher Input Form -->
+                            <div id="voucherInputForm">
+                                <div class="input-group mb-2">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="voucherCode" 
+                                           placeholder="Masukkan kode voucher"
+                                           maxlength="50">
+                                    <button class="btn btn-outline-primary" 
+                                            type="button" 
+                                            onclick="applyVoucher()">
+                                        <i class="bi bi-plus-circle"></i> Gunakan
+                                    </button>
+                                </div>
+                                <div id="voucherMessage" class="small text-muted"></div>
+                            </div>
+                        @endif
+                        
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i> 
+                            Masukkan kode voucher untuk mendapatkan diskon atau gratis ongkir
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Order Summary -->
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="bi bi-receipt"></i> Ringkasan Pesanan</h5>
@@ -140,16 +190,29 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between mb-2">
                             <span>Subtotal</span>
-                            <span>Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
+                            <span id="subtotalDisplay">Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
                         </div>
-                        <div class="d-flex justify-content-between mb-3">
+                        <div class="d-flex justify-content-between mb-2">
                             <span>Ongkos Kirim</span>
-                            <span>Rp {{ number_format($shippingCost, 0, ',', '.') }}</span>
+                            <span id="shippingDisplay" class="{{ $finalShippingCost == 0 ? 'text-success' : '' }}">
+                                @if($finalShippingCost == 0 && $appliedVoucher && $appliedVoucher['free_shipping'])
+                                    <del class="text-muted">Rp {{ number_format($shippingCost, 0, ',', '.') }}</del>
+                                    <span class="text-success">GRATIS</span>
+                                @else
+                                    Rp {{ number_format($finalShippingCost, 0, ',', '.') }}
+                                @endif
+                            </span>
                         </div>
+                        @if($discountAmount > 0)
+                            <div class="d-flex justify-content-between mb-2 text-success" id="discountRow">
+                                <span><i class="bi bi-ticket-perforated"></i> Diskon Voucher</span>
+                                <span id="discountDisplay">-Rp {{ number_format($discountAmount, 0, ',', '.') }}</span>
+                            </div>
+                        @endif
                         <hr>
                         <div class="d-flex justify-content-between mb-3">
                             <strong>Total Pembayaran</strong>
-                            <strong class="text-primary">Rp {{ number_format($total, 0, ',', '.') }}</strong>
+                            <strong class="text-primary" id="totalDisplay">Rp {{ number_format($total, 0, ',', '.') }}</strong>
                         </div>
                         
                         <div class="alert alert-info">
@@ -197,7 +260,138 @@ $(document).ready(function() {
         let value = $(this).val().replace(/\D/g, '');
         $(this).val(value);
     });
+    
+    // Voucher code uppercase and validation on input
+    $('#voucherCode').on('input', function() {
+        this.value = this.value.toUpperCase();
+        $('#voucherMessage').html('').removeClass('text-success text-danger');
+    });
+    
+    // Allow Enter key to apply voucher
+    $('#voucherCode').on('keypress', function(e) {
+        if (e.which === 13) {
+            e.preventDefault();
+            applyVoucher();
+        }
+    });
 });
+
+function applyVoucher() {
+    const voucherCode = $('#voucherCode').val().trim();
+    const messageDiv = $('#voucherMessage');
+    const applyBtn = $('.btn-outline-primary');
+    
+    if (!voucherCode) {
+        messageDiv.html('<i class="bi bi-exclamation-circle"></i> Masukkan kode voucher').addClass('text-danger');
+        return;
+    }
+    
+    // Show loading
+    applyBtn.prop('disabled', true).html('<i class="spinner-border spinner-border-sm me-1"></i>Validasi...');
+    messageDiv.html('<i class="bi bi-clock"></i> Memvalidasi voucher...').removeClass('text-success text-danger').addClass('text-info');
+    
+    $.ajax({
+        url: '{{ route("vouchers.apply") }}',
+        method: 'POST',
+        data: {
+            voucher_code: voucherCode,
+            _token: '{{ csrf_token() }}'
+        },
+        success: function(response) {
+            if (response.success) {
+                // Update totals
+                updateOrderSummary(response.totals);
+                
+                // Show success message and hide form
+                messageDiv.html('<i class="bi bi-check-circle"></i> ' + response.message).addClass('text-success');
+                
+                // Replace form with success display
+                setTimeout(function() {
+                    location.reload(); // Reload to show the applied voucher properly
+                }, 1000);
+            } else {
+                messageDiv.html('<i class="bi bi-exclamation-circle"></i> ' + response.message).addClass('text-danger');
+            }
+        },
+        error: function(xhr) {
+            let message = 'Terjadi kesalahan saat memvalidasi voucher';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+            }
+            messageDiv.html('<i class="bi bi-exclamation-circle"></i> ' + message).addClass('text-danger');
+        },
+        complete: function() {
+            applyBtn.prop('disabled', false).html('<i class="bi bi-plus-circle"></i> Gunakan');
+        }
+    });
+}
+
+function removeVoucher() {
+    if (!confirm('Yakin ingin menghapus voucher yang sudah diterapkan?')) {
+        return;
+    }
+    
+    $.ajax({
+        url: '{{ route("vouchers.remove") }}',
+        method: 'DELETE',
+        data: {
+            _token: '{{ csrf_token() }}'
+        },
+        success: function(response) {
+            if (response.success) {
+                // Update totals
+                updateOrderSummary(response.totals);
+                
+                // Reload page to reset the voucher section
+                setTimeout(function() {
+                    location.reload();
+                }, 500);
+                
+                showAlert('success', response.message);
+            }
+        },
+        error: function() {
+            showAlert('danger', 'Terjadi kesalahan saat menghapus voucher');
+        }
+    });
+}
+
+function updateOrderSummary(totals) {
+    $('#subtotalDisplay').text('Rp ' + totals.subtotal);
+    $('#shippingDisplay').html('Rp ' + totals.shipping_cost);
+    $('#totalDisplay').text('Rp ' + totals.total);
+    
+    if (totals.discount_amount && totals.discount_amount !== '0') {
+        if ($('#discountRow').length === 0) {
+            $('#shippingDisplay').parent().after(`
+                <div class="d-flex justify-content-between mb-2 text-success" id="discountRow">
+                    <span><i class="bi bi-ticket-perforated"></i> Diskon Voucher</span>
+                    <span id="discountDisplay">-Rp ${totals.discount_amount}</span>
+                </div>
+            `);
+        } else {
+            $('#discountDisplay').text('-Rp ' + totals.discount_amount);
+        }
+    } else {
+        $('#discountRow').remove();
+    }
+}
+
+function showAlert(type, message) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    $('body').prepend(alertHtml);
+    
+    // Auto dismiss after 3 seconds
+    setTimeout(function() {
+        $('.alert').alert('close');
+    }, 3000);
+}
 </script>
 @endpush
 @endsection
