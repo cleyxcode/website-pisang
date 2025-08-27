@@ -34,6 +34,7 @@ class Order extends Model
         'midtrans_transaction_id',
         'midtrans_status',
         'paid_at',
+        'processing_at',
         'shipped_at',
         'delivered_at',
         'notes',
@@ -48,6 +49,7 @@ class Order extends Model
         'voucher_discount' => 'decimal:2',
         'has_payment_proof' => 'boolean',
         'paid_at' => 'datetime',
+        'processing_at' => 'datetime',
         'shipped_at' => 'datetime',
         'delivered_at' => 'datetime',
     ];

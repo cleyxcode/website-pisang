@@ -56,6 +56,10 @@ class OrderResource extends Resource
                             ->label('Tanggal Dibayar')
                             ->visible(fn ($get) => in_array($get('status'), ['paid', 'processing', 'shipped', 'delivered'])),
                             
+                        Forms\Components\DateTimePicker::make('processing_at')
+                            ->label('Tanggal Mulai Diproses')
+                            ->visible(fn ($get) => in_array($get('status'), ['processing', 'shipped', 'delivered'])),
+                            
                         Forms\Components\DateTimePicker::make('shipped_at')
                             ->label('Tanggal Dikirim')
                             ->visible(fn ($get) => in_array($get('status'), ['shipped', 'delivered'])),
@@ -249,6 +253,23 @@ class OrderResource extends Resource
                         ]);
                     }),
                     
+                Tables\Actions\Action::make('mark_as_processing')
+                    ->label('Tandai Diproses')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->color('primary')
+                    ->requiresConfirmation()
+                    ->modalHeading('Mulai Proses Pesanan')
+                    ->modalDescription('Pesanan akan ditandai sebagai sedang diproses')
+                    ->modalSubmitActionLabel('Ya, Proses')
+                    ->modalCancelActionLabel('Batal')
+                    ->visible(fn (Order $record) => $record->status === 'paid')
+                    ->action(function (Order $record) {
+                        $record->update([
+                            'status' => 'processing',
+                            'processing_at' => now(),
+                        ]);
+                    }),
+                    
                 Tables\Actions\Action::make('mark_as_shipped')
                     ->label('Tandai Dikirim')
                     ->icon('heroicon-o-truck')
@@ -303,6 +324,10 @@ class OrderResource extends Resource
                             ->label('Tanggal Bayar')
                             ->dateTime('d M Y H:i')
                             ->visible(fn ($record) => $record->paid_at),
+                        Infolists\Components\TextEntry::make('processing_at')
+                            ->label('Mulai Diproses')
+                            ->dateTime('d M Y H:i')
+                            ->visible(fn ($record) => $record->processing_at),
                     ]),
                     
                 Infolists\Components\Section::make('Informasi Customer')

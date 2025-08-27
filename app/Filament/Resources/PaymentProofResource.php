@@ -213,14 +213,14 @@ class PaymentProofResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('Edit'),
                 
-                // Action untuk verifikasi
+                // Action untuk verifikasi dengan langsung processing
                 Tables\Actions\Action::make('verify')
                     ->label('Verifikasi')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
                     ->modalHeading('Verifikasi Bukti Pembayaran')
-                    ->modalDescription('Apakah Anda yakin ingin memverifikasi bukti pembayaran ini?')
+                    ->modalDescription('Bukti pembayaran akan diverifikasi dan pesanan akan langsung masuk ke status "Sedang Diproses"')
                     ->modalSubmitActionLabel('Ya, Verifikasi')
                     ->modalCancelActionLabel('Batal')
                     ->visible(fn (PaymentProof $record) => $record->status === 'pending')
@@ -234,7 +234,38 @@ class PaymentProofResource extends Resource
                             'verified_by' => $userId,
                         ]);
                         
-                        // Update order status
+                        // Update order status langsung ke processing
+                        if ($record->order) {
+                            $record->order->update([
+                                'status' => 'processing',
+                                'paid_at' => now(),
+                                'processing_at' => now(),
+                            ]);
+                        }
+                    }),
+                
+                // Action untuk verifikasi tanpa processing (jika dibutuhkan)
+                Tables\Actions\Action::make('verify_only')
+                    ->label('Verifikasi Saja')
+                    ->icon('heroicon-o-currency-dollar')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalHeading('Verifikasi Pembayaran Saja')
+                    ->modalDescription('Bukti pembayaran akan diverifikasi tanpa mengubah status pesanan ke processing')
+                    ->modalSubmitActionLabel('Ya, Verifikasi')
+                    ->modalCancelActionLabel('Batal')
+                    ->visible(fn (PaymentProof $record) => $record->status === 'pending')
+                    ->action(function (PaymentProof $record) {
+                        // Gunakan guard 'web' untuk admin authentication
+                        $userId = auth('web')->check() ? auth('web')->id() : null;
+                        
+                        $record->update([
+                            'status' => 'verified',
+                            'verified_at' => now(),
+                            'verified_by' => $userId,
+                        ]);
+                        
+                        // Update order status hanya ke paid
                         if ($record->order) {
                             $record->order->update([
                                 'status' => 'paid',

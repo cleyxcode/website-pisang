@@ -126,22 +126,58 @@
                         <h5 class="mb-0"><i class="bi bi-credit-card"></i> Status Pembayaran</h5>
                     </div>
                     <div class="card-body">
-                        <div class="alert alert-info">
-                            <div class="row align-items-center">
-                                <div class="col-md-8">
-                                    <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Bukti Pembayaran Berhasil Diupload</h6>
-                                    <p class="mb-0">
-                                        Bukti transfer Anda telah berhasil diupload dan sedang dalam proses verifikasi. 
-                                        Tim kami akan memverifikasi pembayaran dalam waktu 1x24 jam.
-                                    </p>
-                                </div>
-                                <div class="col-md-4 text-center">
-                                    <span class="badge bg-warning fs-6 p-2">
-                                        <i class="bi bi-clock"></i> Menunggu Verifikasi
-                                    </span>
+                        @if($order->status === 'processing')
+                            <div class="alert alert-success">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h6 class="alert-heading"><i class="bi bi-check-circle"></i> Pembayaran Terverifikasi</h6>
+                                        <p class="mb-0">
+                                            Pembayaran Anda telah berhasil diverifikasi dan pesanan sedang dalam proses pengerjaan. 
+                                            Kami akan segera memproses pesanan Anda.
+                                        </p>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <span class="badge bg-primary fs-6 p-2">
+                                            <i class="bi bi-cog-6-tooth"></i> Sedang Diproses
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        @elseif($order->status === 'paid')
+                            <div class="alert alert-info">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h6 class="alert-heading"><i class="bi bi-check-circle"></i> Pembayaran Terverifikasi</h6>
+                                        <p class="mb-0">
+                                            Pembayaran Anda telah berhasil diverifikasi. 
+                                            Pesanan akan segera diproses oleh tim kami.
+                                        </p>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <span class="badge bg-info fs-6 p-2">
+                                            <i class="bi bi-check-circle"></i> Sudah Dibayar
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <div class="alert alert-warning">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Bukti Pembayaran Berhasil Diupload</h6>
+                                        <p class="mb-0">
+                                            Bukti transfer Anda telah berhasil diupload dan sedang dalam proses verifikasi. 
+                                            Tim kami akan memverifikasi pembayaran dalam waktu 1x24 jam.
+                                        </p>
+                                    </div>
+                                    <div class="col-md-4 text-center">
+                                        <span class="badge bg-warning fs-6 p-2">
+                                            <i class="bi bi-clock"></i> Menunggu Verifikasi
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                         
                         <h6>Detail Pembayaran</h6>
                         <div class="row">
@@ -253,10 +289,11 @@
             <!-- Next Steps -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-list-check"></i> Langkah Selanjutnya</h5>
+                    <h5 class="mb-0"><i class="bi bi-list-check"></i> Status Pesanan</h5>
                 </div>
                 <div class="card-body">
                     <div class="timeline">
+                        <!-- Step 1: Order Created -->
                         <div class="timeline-item completed">
                             <div class="timeline-marker bg-success"></div>
                             <div class="timeline-content">
@@ -265,6 +302,7 @@
                             </div>
                         </div>
                         
+                        <!-- Step 2: Payment Proof Uploaded -->
                         @if($order->paymentProof)
                             <div class="timeline-item completed">
                                 <div class="timeline-marker bg-success"></div>
@@ -275,13 +313,14 @@
                             </div>
                         @endif
                         
-                        <div class="timeline-item {{ $order->status === 'paid' ? 'completed' : 'pending' }}">
-                            <div class="timeline-marker bg-{{ $order->status === 'paid' ? 'success' : 'warning' }}"></div>
+                        <!-- Step 3: Payment Verification -->
+                        <div class="timeline-item {{ in_array($order->status, ['paid', 'processing', 'shipped', 'delivered']) ? 'completed' : 'pending' }}">
+                            <div class="timeline-marker bg-{{ in_array($order->status, ['paid', 'processing', 'shipped', 'delivered']) ? 'success' : 'warning' }}"></div>
                             <div class="timeline-content">
                                 <h6>Verifikasi Pembayaran</h6>
                                 <p class="text-muted small mb-0">
-                                    @if($order->status === 'paid')
-                                        Pembayaran terverifikasi
+                                    @if(in_array($order->status, ['paid', 'processing', 'shipped', 'delivered']))
+                                        Pembayaran terverifikasi {{ $order->paid_at ? $order->paid_at->format('d M Y H:i') : '' }}
                                     @else
                                         Menunggu verifikasi (1x24 jam)
                                     @endif
@@ -289,19 +328,50 @@
                             </div>
                         </div>
                         
-                        <div class="timeline-item pending">
-                            <div class="timeline-marker bg-light"></div>
+                        <!-- Step 4: Order Processing -->
+                        <div class="timeline-item {{ in_array($order->status, ['processing', 'shipped', 'delivered']) ? 'completed' : 'pending' }}">
+                            <div class="timeline-marker bg-{{ in_array($order->status, ['processing', 'shipped', 'delivered']) ? 'success' : 'light' }}"></div>
                             <div class="timeline-content">
                                 <h6>Pesanan Diproses</h6>
-                                <p class="text-muted small mb-0">Setelah pembayaran terverifikasi</p>
+                                <p class="text-muted small mb-0">
+                                    @if($order->status === 'processing' || in_array($order->status, ['shipped', 'delivered']))
+                                        Pesanan sedang diproses {{ $order->processing_at ? $order->processing_at->format('d M Y H:i') : '' }}
+                                    @elseif($order->status === 'paid')
+                                        Menunggu diproses
+                                    @else
+                                        Setelah pembayaran terverifikasi
+                                    @endif
+                                </p>
                             </div>
                         </div>
                         
-                        <div class="timeline-item pending">
-                            <div class="timeline-marker bg-light"></div>
+                        <!-- Step 5: Order Shipped -->
+                        <div class="timeline-item {{ in_array($order->status, ['shipped', 'delivered']) ? 'completed' : 'pending' }}">
+                            <div class="timeline-marker bg-{{ in_array($order->status, ['shipped', 'delivered']) ? 'success' : 'light' }}"></div>
                             <div class="timeline-content">
                                 <h6>Pesanan Dikirim</h6>
-                                <p class="text-muted small mb-0">Estimasi 1-3 hari kerja</p>
+                                <p class="text-muted small mb-0">
+                                    @if(in_array($order->status, ['shipped', 'delivered']))
+                                        Dikirim {{ $order->shipped_at ? $order->shipped_at->format('d M Y H:i') : '' }}
+                                    @else
+                                        Estimasi 1-3 hari kerja setelah diproses
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 6: Order Delivered -->
+                        <div class="timeline-item {{ $order->status === 'delivered' ? 'completed' : 'pending' }}">
+                            <div class="timeline-marker bg-{{ $order->status === 'delivered' ? 'success' : 'light' }}"></div>
+                            <div class="timeline-content">
+                                <h6>Pesanan Selesai</h6>
+                                <p class="text-muted small mb-0">
+                                    @if($order->status === 'delivered')
+                                        Selesai {{ $order->delivered_at ? $order->delivered_at->format('d M Y H:i') : '' }}
+                                    @else
+                                        Estimasi setelah pesanan dikirim
+                                    @endif
+                                </p>
                             </div>
                         </div>
                     </div>
