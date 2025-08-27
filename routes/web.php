@@ -1,6 +1,7 @@
 <?php
 // routes/web.php
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Response;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\HomeController;
@@ -64,3 +65,18 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
         Route::post('/validate', [CheckoutController::class, 'validateVoucher'])->name('validate');
     });
 });
+
+// Route untuk akses file di storage/app/public tanpa artisan storage:link
+Route::get('/storage/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+
+    $mimeType = mime_content_type($filePath);
+    return Response::make(file_get_contents($filePath), 200, [
+        'Content-Type' => $mimeType,
+        'Cache-Control' => 'public, max-age=31536000',
+    ]);
+})->where('path', '.*');
