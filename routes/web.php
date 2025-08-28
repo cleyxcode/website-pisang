@@ -8,6 +8,43 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderHistoryController;
 
+// ===== ROUTE UNTUK STORAGE FILES - TARUH DI PALING ATAS =====
+// Route khusus untuk products images
+Route::get('/storage/products/{filename}', function ($filename) {
+    $path = storage_path('app/public/products/' . $filename);
+    
+    if (!file_exists($path)) {
+        abort(404, 'File not found: ' . $filename);
+    }
+    
+    $mimeType = mime_content_type($path);
+    $headers = [
+        'Content-Type' => $mimeType,
+        'Cache-Control' => 'public, max-age=86400',
+        'Access-Control-Allow-Origin' => '*',
+    ];
+    
+    return response()->file($path, $headers);
+})->where('filename', '[a-zA-Z0-9._-]+')->name('storage.products');
+
+// Route umum untuk semua storage files (fallback)
+Route::get('/storage/{path}', function ($path) {
+    $fullPath = storage_path('app/public/' . $path);
+    
+    if (!file_exists($fullPath)) {
+        abort(404, 'File not found: ' . $path);
+    }
+    
+    $mimeType = mime_content_type($fullPath);
+    return response()->file($fullPath, [
+        'Content-Type' => $mimeType,
+        'Cache-Control' => 'public, max-age=86400',
+        'Access-Control-Allow-Origin' => '*',
+    ]);
+})->where('path', '.*')->name('storage.file');
+
+// ===== ROUTE APLIKASI NORMAL =====
+
 // Public routes (dapat diakses tanpa login)
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
@@ -19,11 +56,10 @@ Route::middleware(['web', 'guest:customer'])->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
-    // Dalam routes/web.php, tambahkan di middleware(['web', 'guest:customer'])
-Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
-Route::post('/forgot-password', [AuthController::class, 'sendPasswordResetOtp'])->name('password.send-otp');
-Route::get('/reset-password', [AuthController::class, 'showResetPassword'])->name('password.reset');
-Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendPasswordResetOtp'])->name('password.send-otp');
+    Route::get('/reset-password', [AuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
 // Logout route (untuk authenticated users)
@@ -31,8 +67,8 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
-    Route::post('/checkout/track', [CheckoutController::class, 'track'])->name('checkout.track');
-    Route::post('/checkout/resend-payment-proof', [CheckoutController::class, 'resendPaymentProof'])->name('checkout.resend-payment-proof');
+Route::post('/checkout/track', [CheckoutController::class, 'track'])->name('checkout.track');
+Route::post('/checkout/resend-payment-proof', [CheckoutController::class, 'resendPaymentProof'])->name('checkout.resend-payment-proof');
 
 // Protected routes (harus login sebagai customer)
 Route::middleware(['web', 'auth:customer'])->group(function () {
@@ -58,8 +94,6 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
         Route::get('/{order}/payment-proof', [CheckoutController::class, 'paymentProof'])->name('payment-proof');
         Route::post('/{order}/payment-proof', [CheckoutController::class, 'storePaymentProof'])->name('store-payment-proof');
         Route::get('/{order}/success', [CheckoutController::class, 'success'])->name('success');
-        // web.php
-
     });
     
     // Order History routes
@@ -75,7 +109,4 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
         Route::delete('/remove', [CheckoutController::class, 'removeVoucher'])->name('remove');
         Route::post('/validate', [CheckoutController::class, 'validateVoucher'])->name('validate');
     });
-    
 });
-
-
