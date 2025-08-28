@@ -43,17 +43,23 @@
                             @enderror
                         </div>
                         
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Password</label>
-                            <input type="password" 
-                                   id="password"
-                                   name="password" 
-                                   class="form-control @error('password') is-invalid @enderror" 
-                                   required>
-                            @error('password')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
+                      <div class="mb-3">
+    <label for="password" class="form-label">Password</label>
+    <div class="input-group">
+        <input type="password" 
+               id="password"
+               name="password" 
+               class="form-control @error('password') is-invalid @enderror" 
+               required>
+        <span class="input-group-text" onclick="togglePassword('password')" style="cursor: pointer;">
+            <i class="bi bi-eye" id="password-eye"></i>
+        </span>
+        @error('password')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+</div>
+
                         
                         <div class="mb-3 form-check">
                             <input type="checkbox" 
@@ -94,5 +100,17 @@ $(document).ready(function() {
         $('#loginBtn').prop('disabled', true).html('<i class="spinner-border spinner-border-sm me-2"></i>Memproses...');
     });
 });
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const eye = document.getElementById(inputId + '-eye');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        eye.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        eye.className = 'bi bi-eye';
+    }
+}
 </script>
 @endpush

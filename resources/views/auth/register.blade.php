@@ -114,5 +114,17 @@ $(document).ready(function() {
         }
     });
 });
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const eye = document.getElementById(inputId + '-eye');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        eye.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        eye.className = 'bi bi-eye';
+    }
+}
 </script>
 @endpush
