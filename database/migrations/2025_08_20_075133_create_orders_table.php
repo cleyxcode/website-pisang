@@ -31,6 +31,9 @@ return new class extends Migration
             
             // Payment info
             $table->enum('payment_method', ['midtrans', 'manual']);
+            $table->foreignId('payment_method_id')->nullable()->constrained()->onDelete('set null'); // HAPUS ->after()
+            $table->boolean('has_payment_proof')->default(false); // HAPUS ->after()
+            
             $table->enum('status', ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled', 'expired'])
                   ->default('pending');
             
@@ -41,14 +44,13 @@ return new class extends Migration
             
             // Timestamps
             $table->timestamp('paid_at')->nullable();
+            $table->timestamp('processing_at')->nullable();
             $table->timestamp('shipped_at')->nullable();
             $table->timestamp('delivered_at')->nullable();
             
             // Notes
             $table->text('notes')->nullable(); // Catatan customer
             $table->text('admin_notes')->nullable(); // Catatan admin
-            $table->foreignId('payment_method_id')->nullable()->constrained()->onDelete('set null')->after('payment_method');
-            $table->boolean('has_payment_proof')->default(false)->after('payment_method_id');
             
             $table->timestamps();
         });

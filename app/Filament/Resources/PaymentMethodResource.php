@@ -20,7 +20,7 @@ class PaymentMethodResource extends Resource
     protected static ?string $navigationLabel = 'Metode Pembayaran';
     
     protected static ?string $modelLabel = 'Metode Pembayaran';
-    
+    protected static ?string $navigationGroup = 'PEMBAYARAN';
     protected static ?string $pluralModelLabel = 'Metode Pembayaran';
 
     protected static ?int $navigationSort = 7;
@@ -223,5 +223,9 @@ class PaymentMethodResource extends Resource
             'view' => Pages\ViewPaymentMethod::route('/{record}'),
             'edit' => Pages\EditPaymentMethod::route('/{record}/edit'),
         ];
+    }
+      public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }

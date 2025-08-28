@@ -21,7 +21,7 @@ class ProductResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-cube';
     
     protected static ?string $navigationLabel = 'Produk';
-    
+     protected static ?string $navigationGroup = 'MANAJEMEN PRODUK';
     protected static ?string $modelLabel = 'Produk';
     
     protected static ?string $pluralModelLabel = 'Produk';
@@ -263,5 +263,9 @@ class ProductResource extends Resource
             'view' => Pages\ViewProduct::route('/{record}'),
             'edit' => Pages\EditProduct::route('/{record}/edit'),
         ];
+    }
+      public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }

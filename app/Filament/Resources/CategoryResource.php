@@ -20,7 +20,7 @@ class CategoryResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-tag';
     
     protected static ?string $navigationLabel = 'Kategori';
-    
+    protected static ?string $navigationGroup = 'MANAJEMEN PRODUK';
     protected static ?string $modelLabel = 'Kategori';
     
     protected static ?string $pluralModelLabel = 'Kategori';
@@ -135,6 +135,10 @@ class CategoryResource extends Resource
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
+    }
+      public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 
     public static function getRelations(): array

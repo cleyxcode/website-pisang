@@ -19,7 +19,7 @@ class VoucherResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
     
     protected static ?string $navigationLabel = 'Voucher';
-    
+     protected static ?string $navigationGroup = 'MANAJEMEN PRODUK';
     protected static ?string $modelLabel = 'Voucher';
     
     protected static ?string $pluralModelLabel = 'Voucher';
@@ -310,5 +310,9 @@ class VoucherResource extends Resource
             'view' => Pages\ViewVoucher::route('/{record}'),
             'edit' => Pages\EditVoucher::route('/{record}/edit'),
         ];
+    }
+      public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }

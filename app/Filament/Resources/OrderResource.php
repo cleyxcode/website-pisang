@@ -21,7 +21,7 @@ class OrderResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
     
     protected static ?string $navigationLabel = 'Pesanan';
-    
+    protected static ?string $navigationGroup = 'PEMBAYARAN';
     protected static ?string $modelLabel = 'Pesanan';
     
     protected static ?string $pluralModelLabel = 'Pesanan';
@@ -380,5 +380,9 @@ class OrderResource extends Resource
             'view' => Pages\ViewOrder::route('/{record}'),
             'edit' => Pages\EditOrder::route('/{record}/edit'),
         ];
+    }
+      public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }

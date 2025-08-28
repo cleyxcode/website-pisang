@@ -22,7 +22,7 @@ class PaymentProofResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-credit-card';
     protected static ?string $navigationLabel = 'Bukti Pembayaran';
-    
+    protected static ?string $navigationGroup = 'PEMBAYARAN';
     // Mengatur judul halaman
     protected static ?string $modelLabel = 'Bukti Pembayaran';
     protected static ?string $pluralModelLabel = 'Bukti Pembayaran';
@@ -388,5 +388,9 @@ class PaymentProofResource extends Resource
             'view' => Pages\ViewPaymentProof::route('/{record}'),
             'edit' => Pages\EditPaymentProof::route('/{record}/edit'),
         ];
+    }
+      public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }
