@@ -62,6 +62,8 @@ Route::middleware(['web', 'guest:customer'])->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
+
+
 // Logout route (untuk authenticated users)
 Route::middleware(['web', 'auth:customer'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
