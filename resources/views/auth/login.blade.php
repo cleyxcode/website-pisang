@@ -21,6 +21,12 @@
                         </div>
                     @endif
 
+                    @if (session('success'))
+                        <div class="alert alert-success">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
                     <form method="POST" action="{{ route('login') }}" id="loginForm">
                         @csrf
                         <div class="mb-3">
@@ -30,7 +36,7 @@
                                    name="email" 
                                    class="form-control @error('email') is-invalid @enderror" 
                                    value="{{ old('email') }}" 
-                                   required 
+                                   required
                                    autofocus>
                             @error('email')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -51,7 +57,7 @@
                         
                         <div class="mb-3 form-check">
                             <input type="checkbox" 
-                                   id="remember" 
+                                   id="remember"
                                    name="remember" 
                                    class="form-check-input">
                             <label for="remember" class="form-check-label">
@@ -67,6 +73,11 @@
                     </form>
                     
                     <div class="text-center mt-3">
+                        <p>
+                            <a href="{{ route('password.request') }}" class="text-decoration-none">
+                                <i class="bi bi-key"></i> Lupa Password?
+                            </a>
+                        </p>
                         <p>Belum punya akun? <a href="{{ route('register') }}">Daftar di sini</a></p>
                     </div>
                 </div>

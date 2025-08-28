@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Mail\PasswordResetOtpMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
@@ -19,6 +21,18 @@ class AuthController extends Controller
     public function showRegister()
     {
         return view('auth.register');
+    }
+
+    public function showForgotPassword()
+    {
+        return view('auth.forgot-password');
+    }
+
+    public function showResetPassword(Request $request)
+    {
+        return view('auth.reset-password', [
+            'email' => $request->email
+        ]);
     }
 
     public function login(Request $request)
@@ -89,6 +103,82 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return back()
                 ->withErrors(['error' => 'Terjadi kesalahan saat mendaftar. Silakan coba lagi.'])
+                ->withInput();
+        }
+    }
+
+    public function sendPasswordResetOtp(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:customers,email'
+        ], [
+            'email.exists' => 'Email tidak terdaftar dalam sistem.'
+        ]);
+
+        try {
+            $customer = Customer::where('email', $request->email)->first();
+            
+            if (!$customer->is_active) {
+                throw ValidationException::withMessages([
+                    'email' => ['Akun Anda telah dinonaktifkan. Silakan hubungi admin.']
+                ]);
+            }
+
+            // Generate OTP
+            $otp = $customer->generatePasswordResetToken();
+
+            // Kirim email OTP
+            Mail::to($customer->email)->send(new PasswordResetOtpMail($otp, $customer->name));
+
+            return redirect()->route('password.reset', ['email' => $customer->email])
+                ->with('success', 'Kode OTP telah dikirim ke email Anda. Silakan cek inbox/spam folder.');
+
+        } catch (\Exception $e) {
+            return back()
+                ->withErrors(['error' => 'Gagal mengirim kode OTP. Silakan coba lagi.'])
+                ->withInput();
+        }
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:customers,email',
+            'otp' => 'required|string|size:6',
+            'password' => 'required|string|min:6|confirmed'
+        ], [
+            'email.exists' => 'Email tidak terdaftar dalam sistem.',
+            'otp.size' => 'Kode OTP harus 6 digit.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'password.min' => 'Password minimal 6 karakter.'
+        ]);
+
+        try {
+            $customer = Customer::where('email', $request->email)->first();
+
+            // Verifikasi OTP
+            if (!$customer->verifyPasswordResetToken($request->otp)) {
+                throw ValidationException::withMessages([
+                    'otp' => ['Kode OTP tidak valid atau sudah kadaluarsa.']
+                ]);
+            }
+
+            // Update password
+            $customer->update([
+                'password' => $request->password
+            ]);
+
+            // Clear token reset password
+            $customer->clearPasswordResetToken();
+
+            return redirect()->route('login')
+                ->with('success', 'Password berhasil diubah. Silakan login dengan password baru Anda.');
+
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            return back()
+                ->withErrors(['error' => 'Gagal mengubah password. Silakan coba lagi.'])
                 ->withInput();
         }
     }
