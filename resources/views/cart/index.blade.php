@@ -22,7 +22,7 @@
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0">Item dalam Keranjang ({{ array_sum(array_column($cart, 'quantity')) }} item)</h5>
+                        <h5 class="mb-0">Item dalam Keranjang (<span id="total-items">{{ array_sum(array_column($cart, 'quantity')) }}</span> item)</h5>
                     </div>
                     <div class="card-body p-0">
                         @foreach($cart as $id => $item)
@@ -47,26 +47,28 @@
                                     <div class="col-md-4">
                                         <h6 class="mb-1">{{ $item['name'] }}</h6>
                                         <p class="text-muted small mb-1">Harga: Rp {{ number_format($item['price'], 0, ',', '.') }}</p>
-                                        <p class="text-muted small mb-0">Stok tersedia: {{ $item['stock'] }}</p>
+                                        <p class="text-muted small mb-0">Stok tersedia: <span class="stock-info" data-stock="{{ $item['stock'] }}">{{ $item['stock'] }}</span></p>
                                     </div>
                                     
                                     <!-- Quantity Controls -->
                                     <div class="col-md-3">
                                         <div class="input-group">
-                                            <button class="btn btn-outline-secondary btn-sm" 
+                                            <button class="btn btn-outline-secondary btn-sm decrease-btn" 
                                                     type="button" 
-                                                    onclick="updateQuantity({{ $id }}, {{ $item['quantity'] - 1 }})">
+                                                    data-product-id="{{ $id }}">
                                                 <i class="bi bi-dash"></i>
                                             </button>
                                             <input type="number" 
-                                                   class="form-control form-control-sm text-center" 
+                                                   class="form-control form-control-sm text-center quantity-input" 
                                                    value="{{ $item['quantity'] }}" 
                                                    min="1" 
                                                    max="{{ $item['stock'] }}"
-                                                   onchange="updateQuantity({{ $id }}, this.value)">
-                                            <button class="btn btn-outline-secondary btn-sm" 
+                                                   data-product-id="{{ $id }}"
+                                                   data-price="{{ $item['price'] }}">
+                                            <button class="btn btn-outline-secondary btn-sm increase-btn" 
                                                     type="button" 
-                                                    onclick="updateQuantity({{ $id }}, {{ $item['quantity'] + 1 }})">
+                                                    data-product-id="{{ $id }}"
+                                                    data-max-stock="{{ $item['stock'] }}">
                                                 <i class="bi bi-plus"></i>
                                             </button>
                                         </div>
@@ -74,7 +76,7 @@
                                     
                                     <!-- Item Total & Actions -->
                                     <div class="col-md-3 text-end">
-                                        <div class="fw-bold text-primary mb-2 item-total">
+                                        <div class="fw-bold text-primary mb-2 item-total" data-product-id="{{ $id }}">
                                             Rp {{ number_format($item['price'] * $item['quantity'], 0, ',', '.') }}
                                         </div>
                                         <button class="btn btn-outline-danger btn-sm" 
@@ -205,39 +207,125 @@
 
 @push('scripts')
 <script>
-function updateQuantity(productId, quantity) {
-    if (quantity < 1) {
-        removeFromCart(productId);
-        return;
-    }
+// Prevent double clicks
+let isUpdating = false;
+
+$(document).ready(function() {
+    // Handle increase button
+    $('.increase-btn').on('click', function() {
+        if (isUpdating) return;
+        
+        const productId = $(this).data('product-id');
+        const maxStock = $(this).data('max-stock');
+        const input = $(`.quantity-input[data-product-id="${productId}"]`);
+        const currentQty = parseInt(input.val());
+        
+        if (currentQty < maxStock) {
+            updateQuantityFromButton(productId, currentQty + 1);
+        } else {
+            showAlert('warning', `Maksimal ${maxStock} item untuk produk ini`);
+        }
+    });
+    
+    // Handle decrease button
+    $('.decrease-btn').on('click', function() {
+        if (isUpdating) return;
+        
+        const productId = $(this).data('product-id');
+        const input = $(`.quantity-input[data-product-id="${productId}"]`);
+        const currentQty = parseInt(input.val());
+        
+        if (currentQty > 1) {
+            updateQuantityFromButton(productId, currentQty - 1);
+        } else {
+            removeFromCart(productId);
+        }
+    });
+    
+    // Handle direct input change
+    $('.quantity-input').on('change', function() {
+        if (isUpdating) return;
+        
+        const productId = $(this).data('product-id');
+        const newQty = parseInt($(this).val());
+        const maxStock = parseInt($(this).attr('max'));
+        
+        if (newQty < 1) {
+            removeFromCart(productId);
+        } else if (newQty > maxStock) {
+            showAlert('warning', `Maksimal ${maxStock} item untuk produk ini`);
+            $(this).val(maxStock);
+            updateQuantityFromButton(productId, maxStock);
+        } else {
+            updateQuantityFromButton(productId, newQty);
+        }
+    });
+    
+    // Handle enter key on quantity input
+    $('.quantity-input').on('keypress', function(e) {
+        if (e.which === 13) { // Enter key
+            $(this).blur(); // Trigger change event
+        }
+    });
+});
+
+function updateQuantityFromButton(productId, newQuantity) {
+    if (isUpdating) return;
+    
+    isUpdating = true;
+    
+    // Disable buttons to prevent multiple clicks
+    $(`.increase-btn[data-product-id="${productId}"], .decrease-btn[data-product-id="${productId}"]`).prop('disabled', true);
     
     $.ajax({
         url: '{{ route("cart.update") }}',
         method: 'PUT',
         data: {
+            _token: $('meta[name="csrf-token"]').attr('content'),
             product_id: productId,
-            quantity: quantity
+            quantity: newQuantity
         },
         success: function(response) {
             if (response.success) {
-                // Update item total
-                $(`[data-product-id="${productId}"] .item-total`).text('Rp ' + response.item_total);
+                // Update quantity input value
+                $(`.quantity-input[data-product-id="${productId}"]`).val(newQuantity);
                 
-                // Update cart total
+                // Update item total
+                $(`.item-total[data-product-id="${productId}"]`).text('Rp ' + response.item_total);
+                
+                // Update cart totals
                 $('.cart-total').text('Rp ' + response.total);
                 
-                // Update cart count
+                // Update total items count
+                updateTotalItems();
+                
+                // Update cart count in navbar
                 updateCartCount();
+                
+                showAlert('success', 'Keranjang berhasil diperbarui');
             } else {
                 showAlert('danger', response.message);
-                // Reload page to reset quantities
-                setTimeout(() => location.reload(), 2000);
+                // Reset input value on error
+                location.reload();
             }
         },
-        error: function() {
+        error: function(xhr) {
+            console.error('Error:', xhr);
             showAlert('danger', 'Terjadi kesalahan saat mengupdate keranjang');
+            // Reset input value on error
+            location.reload();
+        },
+        complete: function() {
+            isUpdating = false;
+            // Re-enable buttons
+            $(`.increase-btn[data-product-id="${productId}"], .decrease-btn[data-product-id="${productId}"]`).prop('disabled', false);
         }
     });
+}
+
+function updateQuantity(productId, quantity) {
+    // This function is kept for backward compatibility but redirects to the new function
+    updateQuantityFromButton(productId, quantity);
 }
 
 function removeFromCart(productId) {
@@ -245,27 +333,32 @@ function removeFromCart(productId) {
         return;
     }
     
+    if (isUpdating) return;
+    isUpdating = true;
+    
     $.ajax({
         url: '{{ route("cart.remove") }}',
         method: 'DELETE',
         data: {
+            _token: $('meta[name="csrf-token"]').attr('content'),
             product_id: productId
         },
         success: function(response) {
             if (response.success) {
-                // Remove item from view
+                // Remove item from view with animation
                 $(`[data-product-id="${productId}"]`).fadeOut(300, function() {
                     $(this).remove();
                     
+                    // Update totals
+                    $('.cart-total').text('Rp ' + response.total);
+                    updateTotalItems();
+                    updateCartCount();
+                    
                     // Check if cart is empty
                     if ($('.cart-item').length === 0) {
-                        location.reload();
+                        setTimeout(() => location.reload(), 500);
                     }
                 });
-                
-                // Update totals
-                $('.cart-total').text('Rp ' + response.total);
-                updateCartCount();
                 
                 showAlert('success', response.message);
             } else {
@@ -274,6 +367,9 @@ function removeFromCart(productId) {
         },
         error: function() {
             showAlert('danger', 'Terjadi kesalahan saat menghapus item');
+        },
+        complete: function() {
+            isUpdating = false;
         }
     });
 }
@@ -283,9 +379,15 @@ function clearCart() {
         return;
     }
     
+    if (isUpdating) return;
+    isUpdating = true;
+    
     $.ajax({
         url: '{{ route("cart.clear") }}',
         method: 'DELETE',
+        data: {
+            _token: $('meta[name="csrf-token"]').attr('content')
+        },
         success: function(response) {
             if (response.success) {
                 showAlert('success', response.message);
@@ -294,15 +396,25 @@ function clearCart() {
         },
         error: function() {
             showAlert('danger', 'Terjadi kesalahan saat mengosongkan keranjang');
+        },
+        complete: function() {
+            isUpdating = false;
         }
     });
 }
 
+// Update total items count
+function updateTotalItems() {
+    let totalItems = 0;
+    $('.quantity-input').each(function() {
+        totalItems += parseInt($(this).val()) || 0;
+    });
+    $('#total-items').text(totalItems);
+}
+
 // Voucher functions
 function copyVoucherCode(code) {
-    // Copy to clipboard
     navigator.clipboard.writeText(code).then(function() {
-        // Show success message
         showAlert('success', `Kode voucher "${code}" berhasil disalin! Gunakan saat checkout.`);
     }).catch(function() {
         // Fallback for older browsers
@@ -317,10 +429,25 @@ function copyVoucherCode(code) {
     });
 }
 
+// Update cart count in navbar
+function updateCartCount() {
+    $.ajax({
+        url: '{{ route("cart.count") }}',
+        method: 'GET',
+        success: function(response) {
+            // Update cart badge in navbar if exists
+            $('.cart-count, .cart-badge').text(response.count);
+        }
+    });
+}
+
 function showAlert(type, message) {
+    // Remove existing alerts first
+    $('.alert-floating').remove();
+    
     const alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
-            <i class="bi bi-${type === 'success' ? 'check-circle' : 'info-circle'}"></i> ${message}
+        <div class="alert alert-${type} alert-dismissible fade show alert-floating" role="alert" style="position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
+            <i class="bi bi-${type === 'success' ? 'check-circle' : (type === 'warning' ? 'exclamation-triangle' : 'info-circle')}"></i> ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     `;
@@ -329,7 +456,7 @@ function showAlert(type, message) {
     
     // Auto dismiss after 4 seconds
     setTimeout(function() {
-        $('.alert').last().alert('close');
+        $('.alert-floating').fadeOut(300);
     }, 4000);
 }
 </script>

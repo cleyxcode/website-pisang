@@ -107,6 +107,7 @@ class CartController extends Controller
             ]);
         }
 
+        // Get fresh product data to check current stock
         $product = Product::findOrFail($productId);
         
         if ($request->quantity > $product->stock) {
@@ -116,7 +117,9 @@ class CartController extends Controller
             ]);
         }
 
+        // Update cart with new quantity and fresh stock info
         $cart[$productId]['quantity'] = $request->quantity;
+        $cart[$productId]['stock'] = $product->stock; // Update stock info
         session()->put('cart', $cart);
 
         $total = $this->calculateTotal($cart);
@@ -124,13 +127,21 @@ class CartController extends Controller
 
         return response()->json([
             'success' => true,
+            'message' => 'Keranjang berhasil diperbarui',
             'item_total' => number_format($itemTotal, 0, ',', '.'),
-            'total' => number_format($total, 0, ',', '.')
+            'total' => number_format($total, 0, ',', '.'),
+            'cart_count' => array_sum(array_column($cart, 'quantity')),
+            'new_quantity' => $request->quantity,
+            'current_stock' => $product->stock
         ]);
     }
 
     public function remove(Request $request)
     {
+        $request->validate([
+            'product_id' => 'required'
+        ]);
+
         $cart = session()->get('cart', []);
         $productId = $request->product_id;
 
