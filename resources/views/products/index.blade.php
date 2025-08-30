@@ -41,14 +41,17 @@
             <div class="filters-card">
                 <form method="GET" class="filters-form">
                     <div class="filter-group">
-                        <div class="search-wrapper">
-                            <i class="bi bi-search search-icon"></i>
-                            <input type="text" 
-                                   name="search" 
-                                   class="search-input" 
-                                   placeholder="Cari produk..." 
-                                   value="{{ request('search') }}">
-                        </div>
+                        <div class="search-wrapper" style="position: relative;">
+    <i class="bi bi-search search-icon"></i>
+    <input type="text" 
+           name="search" 
+           id="search-input"
+           class="search-input" 
+           placeholder="Cari produk..." 
+           value="{{ request('search') }}"
+           autocomplete="off">
+    <div id="search-suggestions" class="search-suggestions"></div>
+</div>
                     </div>
                     <div class="filter-group">
                         <select name="category" class="category-select">
@@ -765,5 +768,90 @@
         justify-content: center;
     }
 }
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.suggestion-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #f5f5f5;
+    transition: background-color 0.2s;
+}
+
+.suggestion-item:hover {
+    background-color: #f8f9fa;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const suggestionsContainer = document.getElementById('search-suggestions');
+    let debounceTimer;
+
+    if (!searchInput || !suggestionsContainer) return;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+
+        if (query.length < 2) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/api/search-suggestions?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(suggestions => {
+                    showSuggestions(suggestions);
+                })
+                .catch(error => {
+                    console.error('Error fetching suggestions:', error);
+                    suggestionsContainer.style.display = 'none';
+                });
+        }, 300);
+    });
+
+    function showSuggestions(suggestions) {
+        if (suggestions.length === 0) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+
+        suggestionsContainer.innerHTML = suggestions.map(suggestion => 
+            `<div class="suggestion-item" onclick="selectSuggestion('${suggestion.replace(/'/g, "\\'")}')">${suggestion}</div>`
+        ).join('');
+        suggestionsContainer.style.display = 'block';
+    }
+
+    window.selectSuggestion = function(suggestion) {
+        searchInput.value = suggestion;
+        suggestionsContainer.style.display = 'none';
+        searchInput.closest('form').submit();
+    };
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.search-wrapper')) {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+});
+</script>
 @endsection
