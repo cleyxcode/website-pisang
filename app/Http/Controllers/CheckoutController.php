@@ -327,12 +327,19 @@ class CheckoutController extends Controller
 
             DB::commit();
             
-            // Send WhatsApp notification to admin about new order
+            // Send WhatsApp notifications
             try {
-                $this->whatsAppService->notifyAdminNewOrder($order);
-            } catch (\Exception $e) {
-                // Log error tapi jangan gagalkan transaksi
+                // Load order with relationships for WhatsApp service
+                $orderWithRelations = Order::with(['items'])->find($order->id);
                 
+                // Send notification to admin about new order
+                $this->whatsAppService->notifyAdminNewOrder($orderWithRelations);
+                
+                // Send confirmation to customer
+                $this->whatsAppService->notifyCustomerOrderConfirmation($orderWithRelations);
+                
+            } catch (\Exception $e) {
+               
             }
             
             // Clear cart and voucher session
@@ -474,12 +481,20 @@ class CheckoutController extends Controller
             
             DB::commit();
             
-            // Send WhatsApp notification to admin about payment proof
+            // Send WhatsApp notifications
             try {
-                $this->whatsAppService->notifyAdminPaymentProof($order, $paymentProof);
-            } catch (\Exception $e) {
-                // Log error tapi jangan gagalkan transaksi
+                // Load payment proof with relationships
+                $paymentProofWithRelations = PaymentProof::with(['order', 'paymentMethod'])->find($paymentProof->id);
                 
+                // Send notification to admin with payment proof image
+                $this->whatsAppService->notifyAdminPaymentProof($order, $paymentProofWithRelations);
+                
+                // Send confirmation to customer that payment proof was received
+                $this->whatsAppService->notifyCustomerPaymentReceived($order);
+                
+            } catch (\Exception $e) {
+                // Log error but don't fail the transaction
+               
             }
             
             return redirect()->route('checkout.success', $order->id)
