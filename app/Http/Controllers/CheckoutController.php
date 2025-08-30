@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class CheckoutController extends Controller
 {
@@ -327,12 +328,25 @@ class CheckoutController extends Controller
 
             DB::commit();
             
-            // Send WhatsApp notification to admin about new order
+            // Send WhatsApp notifications
             try {
+                // Kirim notifikasi ke admin
                 $this->whatsAppService->notifyAdminNewOrder($order);
+                
+                // Kirim notifikasi konfirmasi ke customer
+                $this->whatsAppService->notifyCustomerOrderConfirmation($order);
+                
+                Log::info('WhatsApp notifications sent successfully for order', [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number
+                ]);
+                
             } catch (\Exception $e) {
                 // Log error tapi jangan gagalkan transaksi
-                
+                Log::error('Failed to send WhatsApp notifications for new order', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage()
+                ]);
             }
             
             // Clear cart and voucher session
@@ -477,9 +491,19 @@ class CheckoutController extends Controller
             // Send WhatsApp notification to admin about payment proof
             try {
                 $this->whatsAppService->notifyAdminPaymentProof($order, $paymentProof);
+                
+                Log::info('WhatsApp notification sent to admin about payment proof', [
+                    'order_id' => $order->id,
+                    'payment_proof_id' => $paymentProof->id
+                ]);
+                
             } catch (\Exception $e) {
                 // Log error tapi jangan gagalkan transaksi
-                
+                Log::error('Failed to send WhatsApp notification for payment proof', [
+                    'order_id' => $order->id,
+                    'payment_proof_id' => $paymentProof->id,
+                    'error' => $e->getMessage()
+                ]);
             }
             
             return redirect()->route('checkout.success', $order->id)
