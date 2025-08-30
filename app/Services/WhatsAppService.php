@@ -79,7 +79,7 @@ class WhatsAppService
     }
 
     /**
-     * Send message with media file
+     * Send message with media file (kept for future use if needed)
      */
     private function sendMessageWithMedia(string $target, string $message, string $filePath = null, string $fileName = null)
     {
@@ -165,33 +165,19 @@ class WhatsAppService
     }
 
     /**
-     * Notify admin about payment proof with image
+     * Notify admin about payment proof (text only)
      */
     public function notifyAdminPaymentProof(Order $order, PaymentProof $paymentProof)
     {
         try {
             $message = $this->buildPaymentProofMessage($order, $paymentProof);
             
-            // Get the full path to the payment proof image
-            $imagePath = storage_path('app/public/' . $paymentProof->proof_image);
-            
-            if (file_exists($imagePath)) {
-                // Send message with payment proof image
-                return $this->sendMessageWithMedia(
-                    $this->adminPhone,
-                    $message,
-                    $imagePath,
-                    'bukti_pembayaran_' . $order->order_number . '.jpg'
-                );
-            } else {
-                // Send message without image if file not found
-                $data = [
-                    'target' => $this->formatPhoneNumber($this->adminPhone),
-                    'message' => $message . "\n\n⚠️ Gambar bukti pembayaran tidak ditemukan"
-                ];
-                
-                return $this->sendMessage($data);
-            }
+            $data = [
+                'target' => $this->formatPhoneNumber($this->adminPhone),
+                'message' => $message
+            ];
+
+            return $this->sendMessage($data);
 
         } catch (\Exception $e) {
             Log::error('Failed to notify admin about payment proof', [
@@ -305,7 +291,7 @@ class WhatsAppService
     }
 
     /**
-     * Build payment proof message for admin
+     * Build payment proof message for admin (text only notification)
      */
     private function buildPaymentProofMessage(Order $order, PaymentProof $paymentProof): string
     {
@@ -321,7 +307,7 @@ class WhatsAppService
                "Pengirim: {$paymentProof->sender_name}\n" .
                ($paymentProof->sender_account ? "Rekening Pengirim: {$paymentProof->sender_account}\n" : "") .
                ($paymentProof->notes ? "Catatan: {$paymentProof->notes}\n" : "") . "\n" .
-               "✅ Silakan verifikasi pembayaran ini di dashboard admin.";
+               "📱 Silakan cek dashboard admin untuk melihat bukti pembayaran dan melakukan verifikasi.";
     }
 
     /**
@@ -403,7 +389,7 @@ class WhatsAppService
             
             $data = [
                 'target' => $this->formatPhoneNumber($target),
-                'message' => '🧪 *TEST MESSAGE*\n\nIni adalah pesan test dari sistem WhatsApp.\n\nJika Anda menerima pesan ini, berarti koneksi berhasil! ✅'
+                'message' => 'TEST MESSAGE\n\nIni adalah pesan test dari sistem WhatsApp.\n\nJika Anda menerima pesan ini, berarti koneksi berhasil!'
             ];
 
             $response = $this->sendMessage($data);
