@@ -518,27 +518,28 @@
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-person-circle"></i> {{ Auth::guard('customer')->user()->name }}
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li>
-                                    <a class="dropdown-item" href="#">
-                                        <i class="bi bi-person"></i> Profil Saya
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="{{ route('orders.index') }}">
-                                        <i class="bi bi-bag"></i> Pesanan Saya
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <form method="POST" action="{{ route('logout') }}">
-                                        @csrf
-                                        <button class="dropdown-item" type="submit">
-                                            <i class="bi bi-box-arrow-right"></i> Logout
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
+                            <!-- Di bagian navbar dropdown, ubah link "Profil Saya" -->
+<ul class="dropdown-menu dropdown-menu-end">
+    <li>
+        <a class="dropdown-item" href="{{ route('profile.show') }}">
+            <i class="bi bi-person"></i> Profil Saya
+        </a>
+    </li>
+    <li>
+        <a class="dropdown-item" href="{{ route('orders.index') }}">
+            <i class="bi bi-bag"></i> Pesanan Saya
+        </a>
+    </li>
+    <li><hr class="dropdown-divider"></li>
+    <li>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button class="dropdown-item" type="submit">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </button>
+        </form>
+    </li>
+</ul>
                         </li>
                     @else
                         <li class="nav-item">

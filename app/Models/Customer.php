@@ -1,5 +1,5 @@
-<?php
-// app/Models/Customer.php
+<?php // app/Models/Customer.php
+
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -18,6 +18,7 @@ class Customer extends Authenticatable
         'password',
         'phone',
         'address',
+        'avatar', // Tambahkan avatar
         'is_active',
         'reset_password_token',
         'reset_password_token_expires_at'
@@ -82,5 +83,28 @@ class Customer extends Authenticatable
             'reset_password_token' => null,
             'reset_password_token_expires_at' => null
         ]);
+    }
+
+    /**
+     * Get avatar URL
+     */
+    public function getAvatarUrlAttribute()
+    {
+        if ($this->avatar) {
+            return asset('storage/' . $this->avatar);
+        }
+        return null;
+    }
+
+    /**
+     * Get initials for default avatar
+     */
+    public function getInitialsAttribute()
+    {
+        $words = explode(' ', $this->name);
+        if (count($words) >= 2) {
+            return strtoupper(substr($words[0], 0, 1) . substr($words[1], 0, 1));
+        }
+        return strtoupper(substr($this->name, 0, 2));
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderHistoryController;
+use App\Http\Controllers\ProfileController; // Tambahkan import ProfileController
 
 // ===== ROUTE UNTUK STORAGE FILES - TARUH DI PALING ATAS =====
 // Route khusus untuk products images
@@ -62,8 +63,6 @@ Route::middleware(['web', 'guest:customer'])->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
-
-
 // Logout route (untuk authenticated users)
 Route::middleware(['web', 'auth:customer'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -110,5 +109,19 @@ Route::middleware(['web', 'auth:customer'])->group(function () {
         Route::post('/apply', [CheckoutController::class, 'applyVoucher'])->name('apply');
         Route::delete('/remove', [CheckoutController::class, 'removeVoucher'])->name('remove');
         Route::post('/validate', [CheckoutController::class, 'validateVoucher'])->name('validate');
+    });
+
+    // ===== PROFILE ROUTES - TAMBAHAN BARU =====
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'show'])->name('show');
+        Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
+        Route::put('/update', [ProfileController::class, 'update'])->name('update');
+        
+        // Password routes
+        Route::get('/password', [ProfileController::class, 'editPassword'])->name('password.edit');
+        Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password.update');
+        
+        // Avatar routes
+        Route::delete('/avatar', [ProfileController::class, 'deleteAvatar'])->name('avatar.delete');
     });
 });
