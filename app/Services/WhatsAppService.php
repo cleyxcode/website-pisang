@@ -18,17 +18,28 @@ class WhatsAppService
     {
         $this->token = config('services.fonnte.token');
         $this->adminPhone = config('services.fonnte.admin_phone');
-        $this->apiUrl = config('services.fonnte.api_url');
+        $this->apiUrl = 'https://api.fonnte.com/send';
     }
 
     /**
-     * Send WhatsApp message using Fonnte API
+     * Send WhatsApp messages using Fonnte API with new bulk format
      */
-    private function sendMessage(array $data)
+    private function sendMessages(array $messages, int $baseDelay = 1)
     {
         try {
+            // Prepare data array for Fonnte API
+            $dataArray = [];
+            
+            foreach ($messages as $index => $message) {
+                $dataArray[] = [
+                    'target' => $this->formatPhoneNumber($message['target']),
+                    'message' => $message['message'],
+                    'delay' => (string)($baseDelay + $index) // Progressive delay
+                ];
+            }
+            
             $curl = curl_init();
-
+            
             curl_setopt_array($curl, array(
                 CURLOPT_URL => $this->apiUrl,
                 CURLOPT_RETURNTRANSFER => true,
@@ -38,7 +49,9 @@ class WhatsAppService
                 CURLOPT_FOLLOWLOCATION => true,
                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                 CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => $data,
+                CURLOPT_POSTFIELDS => array(
+                    'data' => json_encode($dataArray)
+                ),
                 CURLOPT_HTTPHEADER => array(
                     'Authorization: ' . $this->token
                 ),
@@ -58,7 +71,7 @@ class WhatsAppService
             Log::info('WhatsApp API Response', [
                 'http_code' => $httpCode,
                 'response' => $response,
-                'data' => $data
+                'data' => $dataArray
             ]);
 
             $responseData = json_decode($response, true);
@@ -72,27 +85,23 @@ class WhatsAppService
         } catch (\Exception $e) {
             Log::error('WhatsApp Send Error', [
                 'error' => $e->getMessage(),
-                'data' => $data
+                'data' => $dataArray ?? []
             ]);
             throw $e;
         }
     }
 
     /**
-     * Send message with media file (kept for future use if needed)
+     * Send single message (for backward compatibility)
      */
-    private function sendMessageWithMedia(string $target, string $message, string $filePath = null, string $fileName = null)
+    private function sendSingleMessage(string $target, string $message, int $delay = 1)
     {
-        $data = [
-            'target' => $this->formatPhoneNumber($target),
-            'message' => $message
-        ];
-
-        if ($filePath && file_exists($filePath)) {
-            $data['file'] = new \CURLFile($filePath, '', $fileName ?? basename($filePath));
-        }
-
-        return $this->sendMessage($data);
+        return $this->sendMessages([
+            [
+                'target' => $target,
+                'message' => $message
+            ]
+        ], $delay);
     }
 
     /**
@@ -124,12 +133,7 @@ class WhatsAppService
         try {
             $message = $this->buildNewOrderMessage($order);
             
-            $data = [
-                'target' => $this->formatPhoneNumber($this->adminPhone),
-                'message' => $message
-            ];
-
-            return $this->sendMessage($data);
+            return $this->sendSingleMessage($this->adminPhone, $message, 1);
 
         } catch (\Exception $e) {
             Log::error('Failed to notify admin about new order', [
@@ -148,15 +152,41 @@ class WhatsAppService
         try {
             $message = $this->buildOrderConfirmationMessage($order);
             
-            $data = [
-                'target' => $this->formatPhoneNumber($order->customer_phone),
-                'message' => $message
-            ];
-
-            return $this->sendMessage($data);
+            return $this->sendSingleMessage($order->customer_phone, $message, 1);
 
         } catch (\Exception $e) {
             Log::error('Failed to notify customer about order confirmation', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Notify admin and customer simultaneously about new order
+     */
+    public function notifyNewOrder(Order $order)
+    {
+        try {
+            $adminMessage = $this->buildNewOrderMessage($order);
+            $customerMessage = $this->buildOrderConfirmationMessage($order);
+            
+            $messages = [
+                [
+                    'target' => $this->adminPhone,
+                    'message' => $adminMessage
+                ],
+                [
+                    'target' => $order->customer_phone,
+                    'message' => $customerMessage
+                ]
+            ];
+            
+            return $this->sendMessages($messages, 1);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to notify admin and customer about new order', [
                 'order_id' => $order->id,
                 'error' => $e->getMessage()
             ]);
@@ -172,12 +202,7 @@ class WhatsAppService
         try {
             $message = $this->buildPaymentProofMessage($order, $paymentProof);
             
-            $data = [
-                'target' => $this->formatPhoneNumber($this->adminPhone),
-                'message' => $message
-            ];
-
-            return $this->sendMessage($data);
+            return $this->sendSingleMessage($this->adminPhone, $message, 1);
 
         } catch (\Exception $e) {
             Log::error('Failed to notify admin about payment proof', [
@@ -197,12 +222,7 @@ class WhatsAppService
         try {
             $message = $this->buildPaymentReceivedMessage($order);
             
-            $data = [
-                'target' => $this->formatPhoneNumber($order->customer_phone),
-                'message' => $message
-            ];
-
-            return $this->sendMessage($data);
+            return $this->sendSingleMessage($order->customer_phone, $message, 1);
 
         } catch (\Exception $e) {
             Log::error('Failed to notify customer about payment received', [
@@ -221,12 +241,7 @@ class WhatsAppService
         try {
             $message = $this->buildOrderStatusMessage($order, $oldStatus);
             
-            $data = [
-                'target' => $this->formatPhoneNumber($order->customer_phone),
-                'message' => $message
-            ];
-
-            return $this->sendMessage($data);
+            return $this->sendSingleMessage($order->customer_phone, $message, 1);
 
         } catch (\Exception $e) {
             Log::error('Failed to notify customer about order status', [
@@ -351,24 +366,12 @@ class WhatsAppService
     }
 
     /**
-     * Send bulk notifications
+     * Send bulk notifications with custom delay
      */
-    public function sendBulkMessages(array $messages, int $delay = 2)
+    public function sendBulkMessages(array $messages, int $baseDelay = 1)
     {
         try {
-            $data = json_encode(array_map(function ($message, $index) use ($delay) {
-                return [
-                    'target' => $this->formatPhoneNumber($message['target']),
-                    'message' => $message['message'],
-                    'delay' => $index * $delay // Progressive delay
-                ];
-            }, $messages, array_keys($messages)));
-
-            $requestData = [
-                'data' => $data
-            ];
-
-            return $this->sendMessage($requestData);
+            return $this->sendMessages($messages, $baseDelay);
 
         } catch (\Exception $e) {
             Log::error('Failed to send bulk messages', [
@@ -386,13 +389,9 @@ class WhatsAppService
     {
         try {
             $target = $phoneNumber ?? $this->adminPhone;
+            $message = 'TEST MESSAGE\n\nIni adalah pesan test dari sistem WhatsApp.\n\nJika Anda menerima pesan ini, berarti koneksi berhasil!';
             
-            $data = [
-                'target' => $this->formatPhoneNumber($target),
-                'message' => 'TEST MESSAGE\n\nIni adalah pesan test dari sistem WhatsApp.\n\nJika Anda menerima pesan ini, berarti koneksi berhasil!'
-            ];
-
-            $response = $this->sendMessage($data);
+            $this->sendSingleMessage($target, $message, 1);
             
             return true;
 

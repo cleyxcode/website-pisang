@@ -328,13 +328,9 @@ class CheckoutController extends Controller
 
             DB::commit();
             
-            // Send WhatsApp notifications
+            // Send WhatsApp notifications (admin + customer in one call)
             try {
-                // Kirim notifikasi ke admin
-                $this->whatsAppService->notifyAdminNewOrder($order);
-                
-                // Kirim notifikasi konfirmasi ke customer
-                $this->whatsAppService->notifyCustomerOrderConfirmation($order);
+                $this->whatsAppService->notifyNewOrder($order);
                 
                 Log::info('WhatsApp notifications sent successfully for order', [
                     'order_id' => $order->id,
