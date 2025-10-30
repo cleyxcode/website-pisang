@@ -20,7 +20,8 @@ return new class extends Migration
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
             $table->boolean('is_active')->default(true);
             $table->boolean('is_featured')->default(false);
-            $table->decimal('weight', 8, 2)->nullable(); // dalam gram
+            $table->decimal('weight', 8, 2)->nullable(); 
+            $table->string('whatsapp_contact', 20)->nullable();
             $table->timestamps();
         });
     }

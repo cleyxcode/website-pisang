@@ -133,6 +133,43 @@
                     </div>
                 @endif
 
+                <!-- WhatsApp Contact Section -->
+                @if($product->whatsapp_contact)
+                    <div class="alert alert-success border-success mb-4" role="alert">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h6 class="alert-heading mb-2">
+                                    <i class="bi bi-whatsapp"></i> Pesan via WhatsApp
+                                </h6>
+                                <p class="mb-0 small">
+                                    Ingin pesan langsung? Hubungi kami via WhatsApp untuk pemesanan manual
+                                </p>
+                            </div>
+                            <div>
+                                <a href="{{ $product->whatsapp_link }}" 
+                                   target="_blank" 
+                                   class="btn btn-success btn-sm">
+                                    <i class="bi bi-whatsapp"></i> Chat Sekarang
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Alternative: WhatsApp Button Style 2 (Uncomment jika mau pakai style ini) -->
+                {{-- @if($product->whatsapp_contact)
+                    <div class="mb-4">
+                        <a href="{{ $product->whatsapp_link }}" 
+                           target="_blank" 
+                           class="btn btn-success w-100 btn-lg">
+                            <i class="bi bi-whatsapp"></i> Pesan via WhatsApp
+                            <small class="d-block" style="font-size: 0.75rem;">
+                                Hubungi: +{{ $product->formatted_whatsapp }}
+                            </small>
+                        </a>
+                    </div>
+                @endif --}}
+
                 <!-- Product Weight -->
                 @if($product->weight)
                     <div class="weight-info mb-3">
@@ -155,6 +192,42 @@
                     </div>
                     <div class="card-body">
                         {!! $product->description !!}
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Contact Information Card (Alternative Style) -->
+    @if($product->whatsapp_contact)
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card border-success">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h5 class="card-title mb-2">
+                                    <i class="bi bi-headset text-success"></i> Butuh Bantuan atau Pemesanan Khusus?
+                                </h5>
+                                <p class="card-text mb-0">
+                                    Hubungi kami langsung via WhatsApp untuk konsultasi produk, pemesanan dalam jumlah besar, 
+                                    atau pertanyaan lainnya. Tim kami siap membantu Anda!
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                <a href="{{ $product->whatsapp_link }}" 
+                                   target="_blank" 
+                                   class="btn btn-success btn-lg pulse-button">
+                                    <i class="bi bi-whatsapp fs-5"></i> 
+                                    <span class="ms-2">Chat WhatsApp</span>
+                                </a>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-telephone"></i> +{{ $product->formatted_whatsapp }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -222,6 +295,45 @@
     .thumbnail-image:hover {
         border-color: #28a745 !important;
         opacity: 0.8;
+    }
+
+    /* WhatsApp Button Animation */
+    .pulse-button {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+        }
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        transition: all 0.3s ease;
+    }
+
+    /* WhatsApp Alert Style */
+    .alert-success {
+        background-color: #d1f4dd;
+        border-left: 4px solid #25D366;
+    }
+
+    .alert-success .btn-success {
+        background-color: #25D366;
+        border-color: #25D366;
+    }
+
+    .alert-success .btn-success:hover {
+        background-color: #128C7E;
+        border-color: #128C7E;
     }
 </style>
 @endpush

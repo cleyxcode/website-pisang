@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\StoreSettings;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -32,6 +33,9 @@ class HomeController extends Controller
             })
             ->get();
 
-        return view('home', compact('featuredProducts', 'latestProducts', 'categories'));
+        // Get store settings
+        $store = StoreSettings::current();
+
+        return view('home', compact('featuredProducts', 'latestProducts', 'categories', 'store'));
     }
 }

@@ -21,7 +21,7 @@ class ProductResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-cube';
     
     protected static ?string $navigationLabel = 'Produk';
-     protected static ?string $navigationGroup = 'MANAJEMEN PRODUK';
+    protected static ?string $navigationGroup = 'MANAJEMEN PRODUK';
     protected static ?string $modelLabel = 'Produk';
     
     protected static ?string $pluralModelLabel = 'Produk';
@@ -122,6 +122,45 @@ class ProductResource extends Resource
                     ])
                     ->columns(3),
                     
+                Forms\Components\Section::make('Kontak WhatsApp')
+                    ->description('Nomor WhatsApp untuk pemesanan manual produk ini')
+                    ->schema([
+                        Forms\Components\TextInput::make('whatsapp_contact')
+                            ->label('Nomor WhatsApp')
+                            ->tel()
+                            ->prefix('+62')
+                            ->placeholder('812XXXXXXXX')
+                            ->maxLength(20)
+                            ->helperText('Format: 812XXXXXXXX (tanpa +62 atau 0). Customer bisa menghubungi nomor ini untuk order manual.')
+                            ->rules([
+                                'nullable',
+                                'regex:/^[0-9]{9,15}$/',
+                            ])
+                            ->validationMessages([
+                                'regex' => 'Nomor WhatsApp harus berisi 9-15 digit angka tanpa spasi atau karakter khusus',
+                            ])
+                            ->suffixAction(
+                                Forms\Components\Actions\Action::make('testWhatsApp')
+                                    ->label('Test')
+                                    ->icon('heroicon-o-chat-bubble-left-right')
+                                    ->color('success')
+                                    ->url(function ($state) {
+                                        if (empty($state)) {
+                                            return null;
+                                        }
+                                        $number = preg_replace('/[^0-9]/', '', $state);
+                                        if (substr($number, 0, 1) === '0') {
+                                            $number = '62' . substr($number, 1);
+                                        } elseif (substr($number, 0, 2) !== '62') {
+                                            $number = '62' . $number;
+                                        }
+                                        return "https://wa.me/{$number}?text=Test%20kontak%20dari%20admin";
+                                    }, shouldOpenInNewTab: true)
+                                    ->disabled(fn ($state) => empty($state))
+                            ),
+                    ])
+                    ->collapsible(),
+                    
                 Forms\Components\Section::make('Pengaturan')
                     ->schema([
                         Forms\Components\Toggle::make('is_active')
@@ -178,6 +217,26 @@ class ProductResource extends Resource
                     ->color(fn ($state) => $state > 10 ? 'success' : ($state > 0 ? 'warning' : 'danger'))
                     ->formatStateUsing(fn ($state) => $state . ' pcs'),
                     
+                Tables\Columns\TextColumn::make('whatsapp_contact')
+                    ->label('WhatsApp')
+                    ->formatStateUsing(function ($state) {
+                        if (!$state) {
+                            return '-';
+                        }
+                        return '+62' . $state;
+                    })
+                    ->badge()
+                    ->color('success')
+                    ->icon('heroicon-o-chat-bubble-left-right')
+                    ->url(function ($record) {
+                        if (!$record->whatsapp_contact) {
+                            return null;
+                        }
+                        return $record->whatsapp_link;
+                    }, shouldOpenInNewTab: true)
+                    ->toggleable()
+                    ->tooltip('Klik untuk chat WhatsApp'),
+                    
                 Tables\Columns\IconColumn::make('is_featured')
                     ->label('Unggulan')
                     ->boolean()
@@ -219,10 +278,26 @@ class ProductResource extends Resource
                     ->label('Stok Habis')
                     ->query(fn (Builder $query): Builder => $query->where('stock', '<=', 0))
                     ->toggle(),
+                    
+                Tables\Filters\TernaryFilter::make('whatsapp_contact')
+                    ->label('WhatsApp')
+                    ->placeholder('Semua produk')
+                    ->trueLabel('Ada kontak WA')
+                    ->falseLabel('Tanpa kontak WA')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereNotNull('whatsapp_contact'),
+                        false: fn (Builder $query) => $query->whereNull('whatsapp_contact'),
+                    ),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('whatsapp')
+                    ->label('Chat WA')
+                    ->icon('heroicon-o-chat-bubble-left-right')
+                    ->color('success')
+                    ->url(fn ($record) => $record->whatsapp_link, shouldOpenInNewTab: true)
+                    ->visible(fn ($record) => !empty($record->whatsapp_contact)),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
@@ -264,7 +339,8 @@ class ProductResource extends Resource
             'edit' => Pages\EditProduct::route('/{record}/edit'),
         ];
     }
-      public static function getNavigationBadge(): ?string
+    
+    public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();
     }

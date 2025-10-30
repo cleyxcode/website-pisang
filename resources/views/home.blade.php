@@ -1,8 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Beranda - Toko Makanan')
+@section('title', 'Beranda - ' . $store->store_name)
 
 @section('content')
+@php
+    $store = App\Models\StoreSettings::current();
+@endphp
+
 <!-- Hero Banner Section -->
 <section class="hero-banner">
     <div class="container-fluid">
@@ -10,7 +14,7 @@
             <div class="banner-slide active">
                 <div class="banner-content">
                     <div class="banner-text">
-                        <h1 class="banner-title">Selamat Datang di <span class="highlight">Toko Makanan</span></h1>
+                        <h1 class="banner-title">Selamat Datang di <span class="highlight">{{ $store->store_name }}</span></h1>
                         <p class="banner-subtitle">Temukan berbagai macam makanan ringan berkualitas dengan harga terjangkau</p>
                         <a href="{{ route('products.index') }}" class="btn-shop-now">
                             <i class="bi bi-grid"></i> Belanja Sekarang
@@ -233,7 +237,7 @@
         <div class="cta-content">
             <div class="cta-text">
                 <h3>Bergabunglah dengan Jutaan Pembeli!</h3>
-                <p>Dapatkan penawaran terbaik dan pengalaman belanja yang menyenangkan</p>
+                <p>Dapatkan penawaran terbaik dan pengalaman belanja yang menyenangkan di {{ $store->store_name }}</p>
             </div>
             <div class="cta-buttons">
                 @auth

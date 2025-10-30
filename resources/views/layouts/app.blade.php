@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Toko Makanan')</title>
+    
+    @php
+        $store = App\Models\StoreSettings::current();
+    @endphp
+    
+    <title>@yield('title', $store->store_name)</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -12,6 +17,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS untuk Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <!-- Custom CSS -->
     <style>
@@ -269,7 +276,7 @@
         }
 
         .navbar-toggler-icon {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%2833, 37, 41, 0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='m4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%2833, 37, 41, 0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
         }
 
         /* Footer Styles */
@@ -356,6 +363,36 @@
             width: 20px;
         }
 
+        /* Store Map Styles */
+        #store-map {
+            height: 200px;
+            width: 100%;
+            border-radius: var(--border-radius);
+            margin-top: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .map-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--primary-orange);
+            color: white;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .map-link-btn:hover {
+            background: var(--primary-dark);
+            color: white;
+            transform: translateY(-2px);
+        }
+
         /* Mobile Responsiveness */
         @media (max-width: 768px) {
             .navbar {
@@ -387,6 +424,10 @@
             .contact-info {
                 margin-top: 1rem;
             }
+
+            #store-map {
+                height: 180px;
+            }
         }
 
         @media (max-width: 576px) {
@@ -404,6 +445,10 @@
 
             .contact-item {
                 justify-content: center;
+            }
+
+            #store-map {
+                height: 150px;
             }
         }
 
@@ -475,7 +520,7 @@
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand" href="{{ route('home') }}">
-                <i class="bi bi-shop"></i> Toko Makanan
+                <i class="bi bi-shop"></i> {{ $store->store_name }}
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -518,28 +563,27 @@
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-person-circle"></i> {{ Auth::guard('customer')->user()->name }}
                             </a>
-                            <!-- Di bagian navbar dropdown, ubah link "Profil Saya" -->
-<ul class="dropdown-menu dropdown-menu-end">
-    <li>
-        <a class="dropdown-item" href="{{ route('profile.show') }}">
-            <i class="bi bi-person"></i> Profil Saya
-        </a>
-    </li>
-    <li>
-        <a class="dropdown-item" href="{{ route('orders.index') }}">
-            <i class="bi bi-bag"></i> Pesanan Saya
-        </a>
-    </li>
-    <li><hr class="dropdown-divider"></li>
-    <li>
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button class="dropdown-item" type="submit">
-                <i class="bi bi-box-arrow-right"></i> Logout
-            </button>
-        </form>
-    </li>
-</ul>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('profile.show') }}">
+                                        <i class="bi bi-person"></i> Profil Saya
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('orders.index') }}">
+                                        <i class="bi bi-bag"></i> Pesanan Saya
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button class="dropdown-item" type="submit">
+                                            <i class="bi bi-box-arrow-right"></i> Logout
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
                         </li>
                     @else
                         <li class="nav-item">
@@ -601,7 +645,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <h5><i class="bi bi-shop"></i> Toko Makanan</h5>
+                    <h5><i class="bi bi-shop"></i> {{ $store->store_name }}</h5>
                     <p>Menyediakan berbagai macam makanan ringan berkualitas dengan harga terjangkau. Kepuasan pelanggan adalah prioritas utama kami.</p>
                     <div class="d-flex gap-2 mt-3">
                         <a href="#" class="btn btn-outline-light btn-sm">
@@ -636,32 +680,23 @@
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-6 mb-4">
-                    <h6>Hubungi Kami</h6>
-                    <div class="contact-info">
-                        <div class="contact-item">
-                            <i class="bi bi-whatsapp"></i>
-                            <span>+62 821-9857-9298</span>
-                        </div>
-                        <div class="contact-item">
-                            <i class="bi bi-envelope"></i>
-                            <span>info@tokomakanan.com</span>
-                        </div>
-                        <div class="contact-item">
-                            <i class="bi bi-geo-alt"></i>
-                            <span>Ambon, Maluku, Indonesia</span>
-                        </div>
-                        <div class="contact-item">
-                            <i class="bi bi-clock"></i>
-                            <span>24/7 Customer Service</span>
-                        </div>
-                    </div>
+                    <h6>Lokasi Toko</h6>
+                    @if($store->latitude && $store->longitude)
+                        <div id="store-map"></div>
+                        <a href="{{ $store->google_maps_url }}" target="_blank" class="map-link-btn">
+                            <i class="bi bi-geo-alt-fill"></i>
+                            Buka di Google Maps
+                        </a>
+                    @else
+                        <p>Lokasi toko belum tersedia</p>
+                    @endif
                 </div>
             </div>
             
             <div class="footer-bottom">
                 <div class="row align-items-center">
                     <div class="col-md-6 text-center text-md-start">
-                        <small>&copy; {{ date('Y') }} Toko Makanan. All rights reserved.</small>
+                        <small>&copy; {{ date('Y') }} {{ $store->store_name }}. All rights reserved.</small>
                     </div>
                     <div class="col-md-6 text-center text-md-end">
                         <small>Made with <i class="bi bi-heart-fill text-danger"></i> in Indonesia</small>
@@ -675,6 +710,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
         // Setup CSRF token for AJAX requests
@@ -694,7 +731,45 @@
             setTimeout(function() {
                 $('.alert').fadeOut('slow');
             }, 5000);
+
+            // Initialize store location map
+            @if($store->latitude && $store->longitude)
+                initStoreMap();
+            @endif
         });
+
+        // Initialize Leaflet Map for Store Location
+        function initStoreMap() {
+            const lat = {{ $store->latitude ?? 0 }};
+            const lng = {{ $store->longitude ?? 0 }};
+            
+            if (lat && lng) {
+                const map = L.map('store-map', {
+                    center: [lat, lng],
+                    zoom: 15,
+                    scrollWheelZoom: false,
+                    dragging: true,
+                    touchZoom: true
+                });
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+
+                L.marker([lat, lng], {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    })
+                }).addTo(map)
+                .bindPopup('<strong>{{ $store->store_name }}</strong><br>Lokasi Toko Kami')
+                .openPopup();
+            }
+        }
 
         function updateCartCount() {
             @auth('customer')

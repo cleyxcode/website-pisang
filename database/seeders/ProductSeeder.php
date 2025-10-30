@@ -25,7 +25,8 @@ class ProductSeeder extends Seeder
                 'category_id' => $keripikPisang->id,
                 'is_active' => true,
                 'is_featured' => true,
-                'weight' => 250
+                'weight' => 250,
+                'whatsapp_contact' => '81234567890' // Format: 8xxxx
             ],
             [
                 'name' => 'Keripik Pisang Balado',
@@ -36,7 +37,8 @@ class ProductSeeder extends Seeder
                 'category_id' => $keripikPisang->id,
                 'is_active' => true,
                 'is_featured' => false,
-                'weight' => 250
+                'weight' => 250,
+                'whatsapp_contact' => '81234567890'
             ],
             [
                 'name' => 'Keripik Pisang Coklat',
@@ -47,7 +49,8 @@ class ProductSeeder extends Seeder
                 'category_id' => $keripikPisang->id,
                 'is_active' => true,
                 'is_featured' => true,
-                'weight' => 250
+                'weight' => 250,
+                'whatsapp_contact' => '81234567890'
             ],
             
             // Snack Asin
@@ -60,7 +63,8 @@ class ProductSeeder extends Seeder
                 'category_id' => $snackAsin->id,
                 'is_active' => true,
                 'is_featured' => false,
-                'weight' => 200
+                'weight' => 200,
+                'whatsapp_contact' => '82187654321'
             ],
             [
                 'name' => 'Kerupuk Udang',
@@ -71,7 +75,8 @@ class ProductSeeder extends Seeder
                 'category_id' => $snackAsin->id,
                 'is_active' => true,
                 'is_featured' => false,
-                'weight' => 150
+                'weight' => 150,
+                'whatsapp_contact' => '82187654321'
             ],
             [
                 'name' => 'Kacang Bawang',
@@ -82,7 +87,8 @@ class ProductSeeder extends Seeder
                 'category_id' => $snackAsin->id,
                 'is_active' => true,
                 'is_featured' => true,
-                'weight' => 100
+                'weight' => 100,
+                'whatsapp_contact' => '82187654321'
             ],
             
             // Snack Manis
@@ -95,7 +101,8 @@ class ProductSeeder extends Seeder
                 'category_id' => $snackManis->id,
                 'is_active' => true,
                 'is_featured' => true,
-                'weight' => 300
+                'weight' => 300,
+                'whatsapp_contact' => '85712345678'
             ],
             [
                 'name' => 'Permen Jahe',
@@ -106,7 +113,8 @@ class ProductSeeder extends Seeder
                 'category_id' => $snackManis->id,
                 'is_active' => true,
                 'is_featured' => false,
-                'weight' => 50
+                'weight' => 50,
+                'whatsapp_contact' => '85712345678'
             ],
             [
                 'name' => 'Biskuit Kelapa',
@@ -117,7 +125,8 @@ class ProductSeeder extends Seeder
                 'category_id' => $snackManis->id,
                 'is_active' => true,
                 'is_featured' => false,
-                'weight' => 200
+                'weight' => 200,
+                'whatsapp_contact' => '85712345678'
             ]
         ];
 

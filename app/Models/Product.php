@@ -25,6 +25,7 @@ class Product extends Model
         'is_active',
         'is_featured',
         'weight',
+        'whatsapp_contact', // Field baru
     ];
 
     protected $casts = [
@@ -103,15 +104,6 @@ class Product extends Model
     {
         return $this->is_active === true;
     }
-
-    /**
-     * Get the Scout engine for the model.
-     * Uncomment jika ingin override default engine
-     */
-    // public function searchableUsing()
-    // {
-    //     return app(\TeamTNT\TNTSearch\TNTSearch::class);
-    // }
 
     /**
      * Modify the query used to retrieve models when making all searchable.
@@ -225,6 +217,46 @@ class Product extends Model
     public function getFormattedPriceAttribute()
     {
         return 'Rp ' . number_format($this->price, 0, ',', '.');
+    }
+
+    /**
+     * Get formatted WhatsApp contact
+     */
+    public function getFormattedWhatsappAttribute()
+    {
+        if (!$this->whatsapp_contact) {
+            return null;
+        }
+        
+        // Bersihkan nomor dari karakter non-digit
+        $number = preg_replace('/[^0-9]/', '', $this->whatsapp_contact);
+        
+        // Jika diawali dengan 0, ganti dengan 62
+        if (substr($number, 0, 1) === '0') {
+            $number = '62' . substr($number, 1);
+        }
+        
+        // Jika belum diawali 62, tambahkan
+        if (substr($number, 0, 2) !== '62') {
+            $number = '62' . $number;
+        }
+        
+        return $number;
+    }
+
+    /**
+     * Get WhatsApp link untuk chat langsung
+     */
+    public function getWhatsappLinkAttribute()
+    {
+        if (!$this->whatsapp_contact) {
+            return null;
+        }
+        
+        $number = $this->formatted_whatsapp;
+        $message = urlencode("Halo, saya tertarik dengan produk: {$this->name} ({$this->formatted_price})");
+        
+        return "https://wa.me/{$number}?text={$message}";
     }
 
     // ====================
